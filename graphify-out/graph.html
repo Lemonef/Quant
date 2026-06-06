@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>graphify - graphify-out/graph.html</title>
+<script src="https://unpkg.com/vis-network@9.1.6/standalone/umd/vis-network.min.js"
+        integrity="sha384-Ux6phic9PEHJ38YtrijhkzyJ8yQlH8i/+buBR8s3mAZOJrP1gwyvAcIYl3GWtpX1"
+        crossorigin="anonymous"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; display: flex; height: 100vh; overflow: hidden; }
+  #graph { flex: 1; }
+  #sidebar { width: 280px; background: #1a1a2e; border-left: 1px solid #2a2a4e; display: flex; flex-direction: column; overflow: hidden; }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search { width: 100%; background: #0f0f1a; border: 1px solid #3a3a5e; color: #e0e0e0; padding: 7px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+  #search:focus { border-color: #4E79A7; }
+  #search-results { max-height: 140px; overflow-y: auto; padding: 4px 12px; border-bottom: 1px solid #2a2a4e; display: none; }
+  .search-item { padding: 4px 6px; cursor: pointer; border-radius: 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 140px; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 5px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link { display: block; padding: 2px 6px; margin: 2px 0; border-radius: 3px; cursor: pointer; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 3px solid #333; }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 160px; overflow-y: auto; margin-top: 4px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; border-radius: 4px; font-size: 12px; }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats { padding: 10px 14px; border-top: 1px solid #2a2a4e; font-size: 11px; color: #555; }
+  #legend-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; padding: 4px 0; }
+  #legend-controls label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: #aaa; user-select: none; }
+  #legend-controls label:hover { color: #e0e0e0; }
+  .legend-cb, #select-all-cb { appearance: none; -webkit-appearance: none; width: 14px; height: 14px; border: 1.5px solid #3a3a5e; border-radius: 3px; background: #0f0f1a; cursor: pointer; position: relative; flex-shrink: 0; }
+  .legend-cb:checked, #select-all-cb:checked { background: #4E79A7; border-color: #4E79A7; }
+  .legend-cb:checked::after, #select-all-cb:checked::after { content: ''; position: absolute; left: 3.5px; top: 1px; width: 4px; height: 7px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  #select-all-cb:indeterminate { background: #4E79A7; border-color: #4E79A7; }
+  #select-all-cb:indeterminate::after { content: ''; position: absolute; left: 2px; top: 5px; width: 8px; height: 2px; background: #fff; border: none; transform: none; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="Search nodes..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>Node Info</h3>
+    <div id="info-content"><span class="empty">Click a node to inspect it</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>Communities</h3>
+    <div id="legend-controls">
+      <label><input type="checkbox" id="select-all-cb" checked onchange="toggleAllCommunities(!this.checked)">Select All</label>
+    </div>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">49 nodes &middot; 63 edges &middot; 14 communities</div>
+</div>
+<script>
+const RAW_NODES = [{"id": "app_json", "label": "app.json", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "app.json", "community": 3, "community_name": "Obsidian App Config", "source_file": "app.json", "file_type": "code", "degree": 3}, {"id": "obsidian_app_alwaysupdatelinks", "label": "alwaysUpdateLinks", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "alwaysUpdateLinks", "community": 3, "community_name": "Obsidian App Config", "source_file": "app.json", "file_type": "code", "degree": 1}, {"id": "obsidian_app_newlinkformat", "label": "newLinkFormat", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "newLinkFormat", "community": 3, "community_name": "Obsidian App Config", "source_file": "app.json", "file_type": "code", "degree": 1}, {"id": "obsidian_app_attachmentfolderpath", "label": "attachmentFolderPath", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "attachmentFolderPath", "community": 3, "community_name": "Obsidian App Config", "source_file": "app.json", "file_type": "code", "degree": 1}, {"id": "core_plugins_json", "label": "core-plugins.json", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 37.3, "font": {"size": 12, "color": "#ffffff"}, "title": "core-plugins.json", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 10}, {"id": "obsidian_core_plugins_file_explorer", "label": "file-explorer", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "file-explorer", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_global_search", "label": "global-search", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "global-search", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_graph", "label": "graph", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "graph", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_backlink", "label": "backlink", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "backlink", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_outgoing_link", "label": "outgoing-link", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "outgoing-link", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_tag_pane", "label": "tag-pane", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "tag-pane", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_page_preview", "label": "page-preview", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "page-preview", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_markdown_importer", "label": "markdown-importer", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "markdown-importer", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_word_count", "label": "word-count", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "word-count", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "obsidian_core_plugins_outline", "label": "outline", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "outline", "community": 0, "community_name": "Obsidian Plugins Config", "source_file": "core-plugins.json", "file_type": "code", "degree": 1}, {"id": "claude_project", "label": "Quant Trading Bot Project (CLAUDE.md)", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 31.8, "font": {"size": 12, "color": "#ffffff"}, "title": "Quant Trading Bot Project (CLAUDE.md)", "community": 2, "community_name": "Project Docs & Sweep", "source_file": "CLAUDE.md", "file_type": "document", "degree": 8}, {"id": "index_vault", "label": "Quant Vault Index (Map of Content)", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 31.8, "font": {"size": 12, "color": "#ffffff"}, "title": "Quant Vault Index (Map of Content)", "community": 2, "community_name": "Project Docs & Sweep", "source_file": "index.md", "file_type": "document", "degree": 8}, {"id": "donchianv1sol4h2023_report", "label": "Donchian V1 SOL 4H 2023 Backtest Report", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 20.9, "font": {"size": 12, "color": "#ffffff"}, "title": "Donchian V1 SOL 4H 2023 Backtest Report", "community": 4, "community_name": "Donchian Strategy & Filters", "source_file": "backtest_results/DONCHIAN_V1_SOL4H_2023.md", "file_type": "document", "degree": 4}, {"id": "sweep20234h_report", "label": "Strategy Sweep 4H 2023-2026", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 29.1, "font": {"size": 12, "color": "#ffffff"}, "title": "Strategy Sweep 4H 2023-2026", "community": 2, "community_name": "Project Docs & Sweep", "source_file": "backtest_results/SWEEP_2023_4H.md", "file_type": "document", "degree": 7}, {"id": "donchianbreakout_strategy", "label": "Donchian Breakout V1 Strategy", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 37.3, "font": {"size": 12, "color": "#ffffff"}, "title": "Donchian Breakout V1 Strategy", "community": 4, "community_name": "Donchian Strategy & Filters", "source_file": "strategies/donchian-breakout/donchian-breakout.md", "file_type": "document", "degree": 10}, {"id": "momentumreversion_strategy", "label": "Momentum Reversion (MR) Strategy", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 26.4, "font": {"size": 12, "color": "#ffffff"}, "title": "Momentum Reversion (MR) Strategy", "community": 2, "community_name": "Project Docs & Sweep", "source_file": "strategies/momentum-reversion/momentum-reversion.md", "file_type": "document", "degree": 6}, {"id": "quantblend_strategy", "label": "Quant Blend V1 (QB) Strategy", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 40.0, "font": {"size": 12, "color": "#ffffff"}, "title": "Quant Blend V1 (QB) Strategy", "community": 6, "community_name": "Quant Blend Engine", "source_file": "strategies/quant-blend/quant-blend.md", "file_type": "document", "degree": 11}, {"id": "trendmeter_strategy", "label": "Trend Meter (TM) Strategy", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 29.1, "font": {"size": 12, "color": "#ffffff"}, "title": "Trend Meter (TM) Strategy", "community": 8, "community_name": "Trend Meter Strategy", "source_file": "strategies/trend-meter/trend-meter.md", "file_type": "document", "degree": 7}, {"id": "donchianbreakout_donchian_indicator", "label": "Donchian Channel (N-high breakout / M-low exit)", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Donchian Channel (N-high breakout / M-low exit)", "community": 9, "community_name": "Breakout & EMA Indicators", "source_file": "strategies/donchian-breakout/donchian-breakout.md", "file_type": "rationale", "degree": 2}, {"id": "donchianbreakout_adx_filter", "label": "ADX Filter", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "ADX Filter", "community": 4, "community_name": "Donchian Strategy & Filters", "source_file": "strategies/donchian-breakout/donchian-breakout.md", "file_type": "rationale", "degree": 1}, {"id": "donchianbreakout_atr_stop", "label": "ATR Stop / Expansion Filter", "color": {"background": "#59A14F", "border": "#59A14F", "highlight": {"background": "#ffffff", "border": "#59A14F"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "ATR Stop / Expansion Filter", "community": 4, "community_name": "Donchian Strategy & Filters", "source_file": "strategies/donchian-breakout/donchian-breakout.md", "file_type": "rationale", "degree": 1}, {"id": "trendmeter_ema_stack", "label": "EMA Stack 13/21/34/55", "color": {"background": "#BAB0AC", "border": "#BAB0AC", "highlight": {"background": "#ffffff", "border": "#BAB0AC"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "EMA Stack 13/21/34/55", "community": 9, "community_name": "Breakout & EMA Indicators", "source_file": "strategies/trend-meter/trend-meter.md", "file_type": "rationale", "degree": 2}, {"id": "trendmeter_stochrsi", "label": "Stochastic RSI Cross", "color": {"background": "#9C755F", "border": "#9C755F", "highlight": {"background": "#ffffff", "border": "#9C755F"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Stochastic RSI Cross", "community": 8, "community_name": "Trend Meter Strategy", "source_file": "strategies/trend-meter/trend-meter.md", "file_type": "rationale", "degree": 1}, {"id": "quantblend_adx_regime", "label": "ADX Regime Switch (trending vs ranging)", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "ADX Regime Switch (trending vs ranging)", "community": 5, "community_name": "Regime Meta-Strategy Insight", "source_file": "strategies/quant-blend/quant-blend.md", "file_type": "rationale", "degree": 2}, {"id": "quantblend_supertrend", "label": "Supertrend", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Supertrend", "community": 6, "community_name": "Quant Blend Engine", "source_file": "strategies/quant-blend/quant-blend.md", "file_type": "rationale", "degree": 1}, {"id": "quantblend_bollinger", "label": "Bollinger Band Mean-Reversion", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Bollinger Band Mean-Reversion", "community": 7, "community_name": "Mean-Reversion Signals", "source_file": "strategies/quant-blend/quant-blend.md", "file_type": "rationale", "degree": 2}, {"id": "quantblend_rsi", "label": "RSI Momentum", "color": {"background": "#B07AA1", "border": "#B07AA1", "highlight": {"background": "#ffffff", "border": "#B07AA1"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "RSI Momentum", "community": 6, "community_name": "Quant Blend Engine", "source_file": "strategies/quant-blend/quant-blend.md", "file_type": "rationale", "degree": 1}, {"id": "momentumreversion_rsi_pullback", "label": "RSI Pullback Mean-Reversion", "color": {"background": "#FF9DA7", "border": "#FF9DA7", "highlight": {"background": "#ffffff", "border": "#FF9DA7"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "RSI Pullback Mean-Reversion", "community": 7, "community_name": "Mean-Reversion Signals", "source_file": "strategies/momentum-reversion/momentum-reversion.md", "file_type": "rationale", "degree": 2}, {"id": "claude_market_sol", "label": "SOL (SOLUSDT)", "color": {"background": "#4E79A7", "border": "#4E79A7", "highlight": {"background": "#ffffff", "border": "#4E79A7"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "SOL (SOLUSDT)", "community": 10, "community_name": "SOL Market", "source_file": "CLAUDE.md", "file_type": "rationale", "degree": 0}, {"id": "claude_market_btc", "label": "BTC (BTCUSDT)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "BTC (BTCUSDT)", "community": 11, "community_name": "BTC Market", "source_file": "CLAUDE.md", "file_type": "rationale", "degree": 0}, {"id": "claude_market_eth", "label": "ETH (ETHUSDT)", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "ETH (ETHUSDT)", "community": 12, "community_name": "ETH Market", "source_file": "CLAUDE.md", "file_type": "rationale", "degree": 0}, {"id": "claude_market_xau", "label": "XAU (Gold)", "color": {"background": "#76B7B2", "border": "#76B7B2", "highlight": {"background": "#ffffff", "border": "#76B7B2"}}, "size": 10.0, "font": {"size": 0, "color": "#ffffff"}, "title": "XAU (Gold)", "community": 13, "community_name": "XAU Market", "source_file": "CLAUDE.md", "file_type": "rationale", "degree": 0}, {"id": "index_meta_strategy", "label": "Market-Aware Meta-Strategy (route by regime/asset)", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 18.2, "font": {"size": 12, "color": "#ffffff"}, "title": "Market-Aware Meta-Strategy (route by regime/asset)", "community": 5, "community_name": "Regime Meta-Strategy Insight", "source_file": "index.md", "file_type": "rationale", "degree": 3}, {"id": "claude_two_camps", "label": "Two Camps / Opposite Markets Insight", "color": {"background": "#EDC948", "border": "#EDC948", "highlight": {"background": "#ffffff", "border": "#EDC948"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Two Camps / Opposite Markets Insight", "community": 5, "community_name": "Regime Meta-Strategy Insight", "source_file": "CLAUDE.md", "file_type": "rationale", "degree": 2}, {"id": "claude_mandatory_checklist", "label": "Mandatory Pre-Record Backtest Checklist", "color": {"background": "#E15759", "border": "#E15759", "highlight": {"background": "#ffffff", "border": "#E15759"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Mandatory Pre-Record Backtest Checklist", "community": 2, "community_name": "Project Docs & Sweep", "source_file": "CLAUDE.md", "file_type": "rationale", "degree": 1}, {"id": "donchian_v1_sol4h_2023_screenshot", "label": "Donchian Breakout V1 SOL 4H Backtest (Strategy Tester)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Donchian Breakout V1 SOL 4H Backtest (Strategy Tester)", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "image", "degree": 1}, {"id": "donchian_v1_sol4h_2023_strategy", "label": "Donchian Breakout V1 Strategy", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 31.8, "font": {"size": 12, "color": "#ffffff"}, "title": "Donchian Breakout V1 Strategy", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "rationale", "degree": 8}, {"id": "donchian_v1_sol4h_2023_market", "label": "SOLUSDT 4H (SOL/TetherUS, Binance)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "SOLUSDT 4H (SOL/TetherUS, Binance)", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 1}, {"id": "donchian_v1_sol4h_2023_daterange", "label": "Backtest Period Jan 1 2023 - Jun 6 2026 (DEEP)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Backtest Period Jan 1 2023 - Jun 6 2026 (DEEP)", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 1}, {"id": "donchian_v1_sol4h_2023_total_pnl", "label": "Total PnL +2,797.96 USDT (+27.98%)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Total PnL +2,797.96 USDT (+27.98%)", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 1}, {"id": "donchian_v1_sol4h_2023_max_drawdown", "label": "Max Drawdown 10,446.33 USDT (45.35%)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Max Drawdown 10,446.33 USDT (45.35%)", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 1}, {"id": "donchian_v1_sol4h_2023_profitable_trades", "label": "Profitable Trades 38.16% (29/76)", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Profitable Trades 38.16% (29/76)", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 2}, {"id": "donchian_v1_sol4h_2023_profit_factor", "label": "Profit Factor 1.095", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 12.7, "font": {"size": 0, "color": "#ffffff"}, "title": "Profit Factor 1.095", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 1}, {"id": "donchian_v1_sol4h_2023_total_trades", "label": "Total Trades 76", "color": {"background": "#F28E2B", "border": "#F28E2B", "highlight": {"background": "#ffffff", "border": "#F28E2B"}}, "size": 15.5, "font": {"size": 12, "color": "#ffffff"}, "title": "Total Trades 76", "community": 1, "community_name": "Donchian SOL Backtest Metrics", "source_file": "backtest_results/donchian_v1_sol4h_2023.png", "file_type": "document", "degree": 2}];
+const RAW_EDGES = [{"from": "app_json", "to": "obsidian_app_alwaysupdatelinks", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "app_json", "to": "obsidian_app_newlinkformat", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "app_json", "to": "obsidian_app_attachmentfolderpath", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_file_explorer", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_global_search", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_graph", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_backlink", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_outgoing_link", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_tag_pane", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_page_preview", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_markdown_importer", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_word_count", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "core_plugins_json", "to": "obsidian_core_plugins_outline", "label": "contains", "title": "contains [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "index_vault", "to": "claude_project", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "claude_project", "to": "sweep20234h_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "claude_project", "to": "claude_two_camps", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "claude_project", "to": "claude_mandatory_checklist", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_strategy", "to": "claude_project", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "momentumreversion_strategy", "to": "claude_project", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "claude_project", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "claude_project", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "index_vault", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "momentumreversion_strategy", "to": "index_vault", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "index_vault", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_strategy", "to": "index_vault", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "index_vault", "to": "sweep20234h_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "index_vault", "to": "donchianv1sol4h2023_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "index_vault", "to": "index_meta_strategy", "label": "rationale_for", "title": "rationale_for [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianv1sol4h2023_report", "to": "donchianbreakout_strategy", "label": "conceptually_related_to", "title": "conceptually_related_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "donchianv1sol4h2023_report", "to": "quantblend_strategy", "label": "references", "title": "references [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "sweep20234h_report", "to": "donchianv1sol4h2023_report", "label": "shares_data_with", "title": "shares_data_with [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "donchianbreakout_strategy", "to": "sweep20234h_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "momentumreversion_strategy", "to": "sweep20234h_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "sweep20234h_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "sweep20234h_report", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "donchianbreakout_strategy", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "quantblend_strategy", "to": "donchianbreakout_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_strategy", "to": "momentumreversion_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_strategy", "to": "donchianbreakout_donchian_indicator", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_strategy", "to": "donchianbreakout_adx_filter", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_strategy", "to": "donchianbreakout_atr_stop", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "momentumreversion_strategy", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "momentumreversion_strategy", "to": "momentumreversion_rsi_pullback", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "quantblend_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "quantblend_adx_regime", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "quantblend_supertrend", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "quantblend_bollinger", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "quantblend_strategy", "to": "quantblend_rsi", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "trendmeter_ema_stack", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "trendmeter_strategy", "to": "trendmeter_stochrsi", "label": "conceptually_related_to", "title": "conceptually_related_to [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchianbreakout_donchian_indicator", "to": "trendmeter_ema_stack", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "quantblend_adx_regime", "to": "index_meta_strategy", "label": "rationale_for", "title": "rationale_for [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "momentumreversion_rsi_pullback", "to": "quantblend_bollinger", "label": "semantically_similar_to", "title": "semantically_similar_to [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "claude_two_camps", "to": "index_meta_strategy", "label": "rationale_for", "title": "rationale_for [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}, {"from": "donchian_v1_sol4h_2023_screenshot", "to": "donchian_v1_sol4h_2023_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_strategy", "to": "donchian_v1_sol4h_2023_market", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_strategy", "to": "donchian_v1_sol4h_2023_daterange", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_total_pnl", "to": "donchian_v1_sol4h_2023_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_max_drawdown", "to": "donchian_v1_sol4h_2023_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_profitable_trades", "to": "donchian_v1_sol4h_2023_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_profit_factor", "to": "donchian_v1_sol4h_2023_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_total_trades", "to": "donchian_v1_sol4h_2023_strategy", "label": "references", "title": "references [EXTRACTED]", "dashes": false, "width": 2, "color": {"opacity": 0.7}, "confidence": "EXTRACTED"}, {"from": "donchian_v1_sol4h_2023_total_trades", "to": "donchian_v1_sol4h_2023_profitable_trades", "label": "shares_data_with", "title": "shares_data_with [INFERRED]", "dashes": true, "width": 1, "color": {"opacity": 0.35}, "confidence": "INFERRED"}];
+const LEGEND = [{"cid": 0, "color": "#4E79A7", "label": "Obsidian Plugins Config", "count": 11}, {"cid": 1, "color": "#F28E2B", "label": "Donchian SOL Backtest Metrics", "count": 9}, {"cid": 2, "color": "#E15759", "label": "Project Docs &amp; Sweep", "count": 5}, {"cid": 3, "color": "#76B7B2", "label": "Obsidian App Config", "count": 4}, {"cid": 4, "color": "#59A14F", "label": "Donchian Strategy &amp; Filters", "count": 4}, {"cid": 5, "color": "#EDC948", "label": "Regime Meta-Strategy Insight", "count": 3}, {"cid": 6, "color": "#B07AA1", "label": "Quant Blend Engine", "count": 3}, {"cid": 7, "color": "#FF9DA7", "label": "Mean-Reversion Signals", "count": 2}, {"cid": 8, "color": "#9C755F", "label": "Trend Meter Strategy", "count": 2}, {"cid": 9, "color": "#BAB0AC", "label": "Breakout &amp; EMA Indicators", "count": 2}, {"cid": 10, "color": "#4E79A7", "label": "SOL Market", "count": 1}, {"cid": 11, "color": "#F28E2B", "label": "BTC Market", "count": 1}, {"cid": 12, "color": "#E15759", "label": "ETH Market", "count": 1}, {"cid": 13, "color": "#76B7B2", "label": "XAU Market", "count": 1}];
+
+// HTML-escape helper — prevents XSS when injecting graph data into innerHTML
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Build vis datasets
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id, label: n.label, color: n.color, size: n.size,
+  font: n.font, title: n.title,
+  _community: n.community, _community_name: n.community_name,
+  _source_file: n.source_file, _file_type: n.file_type, _degree: n.degree,
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i, from: e.from, to: e.to,
+  label: '',
+  title: e.title,
+  dashes: e.dashes,
+  width: e.width,
+  color: e.color,
+  arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -60,
+      centralGravity: 0.005,
+      springLength: 120,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.8,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: true,
+    navigationButtons: false,
+    keyboard: false,
+  },
+  nodes: { shape: 'dot', borderWidth: 1.5 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${esc(color)}" onclick="focusNode(${JSON.stringify(nid)})">${esc(nb ? nb.label : nid)}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b>${esc(n.label)}</b></div>
+    <div class="field">Type: ${esc(n._file_type || 'unknown')}</div>
+    <div class="field">Community: ${esc(n._community_name)}</div>
+    <div class="field">Source: ${esc(n._source_file || '-')}</div>
+    <div class="field">Degree: ${n._degree}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
+  `;
+}
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.4, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+// Track hovered node — hover detection is more reliable than click params
+let hoveredNodeId = null;
+network.on('hoverNode', params => {
+  hoveredNodeId = params.node;
+  container.style.cursor = 'pointer';
+});
+network.on('blurNode', () => {
+  hoveredNodeId = null;
+  container.style.cursor = 'default';
+});
+container.addEventListener('click', () => {
+  if (hoveredNodeId !== null) {
+    showInfo(hoveredNodeId);
+    network.selectNodes([hoveredNodeId]);
+  }
+});
+network.on('click', params => {
+  if (params.nodes.length > 0) {
+    showInfo(params.nodes[0]);
+  } else if (hoveredNodeId === null) {
+    document.getElementById('info-content').innerHTML = '<span class="empty">Click a node to inspect it</span>';
+  }
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q)).slice(0, 20);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color.background}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      network.focus(n.id, { scale: 1.5, animation: true });
+      network.selectNodes([n.id]);
+      showInfo(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+
+const selectAllCb = document.getElementById('select-all-cb');
+
+function updateSelectAllState() {
+  const total = LEGEND.length;
+  const hidden = hiddenCommunities.size;
+  selectAllCb.checked = hidden === 0;
+  selectAllCb.indeterminate = hidden > 0 && hidden < total;
+}
+
+function toggleAllCommunities(hide) {
+  document.querySelectorAll('.legend-item').forEach(item => {
+    hide ? item.classList.add('dimmed') : item.classList.remove('dimmed');
+  });
+  document.querySelectorAll('.legend-cb').forEach(cb => {
+    cb.checked = !hide;
+  });
+  LEGEND.forEach(c => {
+    if (hide) hiddenCommunities.add(c.cid); else hiddenCommunities.delete(c.cid);
+  });
+  const updates = RAW_NODES.map(n => ({ id: n.id, hidden: hide }));
+  nodesDS.update(updates);
+  updateSelectAllState();
+}
+
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'legend-cb';
+  cb.checked = true;
+  cb.addEventListener('change', (e) => {
+    e.stopPropagation();
+    if (cb.checked) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: !cb.checked }));
+    nodesDS.update(updates);
+    updateSelectAllState();
+  });
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${c.label}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.prepend(cb);
+  item.onclick = (e) => {
+    if (e.target === cb) return;
+    cb.checked = !cb.checked;
+    cb.dispatchEvent(new Event('change'));
+  };
+  legendEl.appendChild(item);
+});
+</script>
+<script>
+// Render hyperedges as shaded regions
+const hyperedges = [{"id": "mean_reversion_camp", "label": "Mean-Reversion Camp (win SOL/XAU)", "nodes": ["quantblend_strategy", "momentumreversion_strategy", "claude_two_camps"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "index.md"}, {"id": "trend_following_camp", "label": "Trend-Following Camp (win BTC/ETH)", "nodes": ["trendmeter_strategy", "donchianbreakout_strategy", "claude_two_camps"], "relation": "form", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "index.md"}, {"id": "markets_tested", "label": "All Markets Tested in Sweep", "nodes": ["claude_market_sol", "claude_market_btc", "claude_market_eth", "claude_market_xau"], "relation": "participate_in", "confidence": "EXTRACTED", "confidence_score": 1.0, "source_file": "backtest_results/SWEEP_2023_4H.md"}];
+// afterDrawing passes ctx already transformed to network coordinate space.
+// Draw node positions raw — no manual pan/zoom/DPR math needed.
+network.on('afterDrawing', function(ctx) {
+    hyperedges.forEach(h => {
+        const positions = h.nodes
+            .map(nid => network.getPositions([nid])[nid])
+            .filter(p => p !== undefined);
+        if (positions.length < 2) return;
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#6366f1';
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        // Centroid and expanded hull in network coordinates
+        const cx = positions.reduce((s, p) => s + p.x, 0) / positions.length;
+        const cy = positions.reduce((s, p) => s + p.y, 0) / positions.length;
+        const expanded = positions.map(p => ({
+            x: cx + (p.x - cx) * 1.15,
+            y: cy + (p.y - cy) * 1.15
+        }));
+        ctx.moveTo(expanded[0].x, expanded[0].y);
+        expanded.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.4;
+        ctx.stroke();
+        // Label
+        ctx.globalAlpha = 0.8;
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(h.label, cx, cy - 5);
+        ctx.restore();
+    });
+});
+</script>
+</body>
+</html>

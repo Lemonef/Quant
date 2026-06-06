@@ -1,0 +1,57 @@
+{
+  "D:\\Quant\\.obsidian\\app.json": {
+    "mtime": 1780770928.491922,
+    "ast_hash": "2c103c9adc91b4d34f7e64077d63d8e5",
+    "semantic_hash": "2c103c9adc91b4d34f7e64077d63d8e5"
+  },
+  "D:\\Quant\\.obsidian\\core-plugins.json": {
+    "mtime": 1780770935.7837365,
+    "ast_hash": "04435278c93ec0c0099cb8393b37f1ae",
+    "semantic_hash": "04435278c93ec0c0099cb8393b37f1ae"
+  },
+  "D:\\Quant\\CLAUDE.md": {
+    "mtime": 1780770824.1040268,
+    "ast_hash": "62e59a9f776f2aed581ea49fbd0530ce",
+    "semantic_hash": "62e59a9f776f2aed581ea49fbd0530ce"
+  },
+  "D:\\Quant\\index.md": {
+    "mtime": 1780770864.0991666,
+    "ast_hash": "8b0cd4f3dd916c18f3de720107995cc0",
+    "semantic_hash": "8b0cd4f3dd916c18f3de720107995cc0"
+  },
+  "D:\\Quant\\backtest_results\\DONCHIAN_V1_SOL4H_2023.md": {
+    "mtime": 1780768240.4680197,
+    "ast_hash": "a24b8aaada20d30539f755719cef90c5",
+    "semantic_hash": "a24b8aaada20d30539f755719cef90c5"
+  },
+  "D:\\Quant\\backtest_results\\SWEEP_2023_4H.md": {
+    "mtime": 1780770762.3107271,
+    "ast_hash": "b8eca128dfadc4a9bf5784fbf1cd19dd",
+    "semantic_hash": "b8eca128dfadc4a9bf5784fbf1cd19dd"
+  },
+  "D:\\Quant\\strategies\\donchian-breakout\\donchian-breakout.md": {
+    "mtime": 1780770915.1621,
+    "ast_hash": "0c8e88ea0abe8e3aa7200019ddee961c",
+    "semantic_hash": "0c8e88ea0abe8e3aa7200019ddee961c"
+  },
+  "D:\\Quant\\strategies\\momentum-reversion\\momentum-reversion.md": {
+    "mtime": 1780770891.5062592,
+    "ast_hash": "b27fb0cce45047c0555f94f924314220",
+    "semantic_hash": "b27fb0cce45047c0555f94f924314220"
+  },
+  "D:\\Quant\\strategies\\quant-blend\\quant-blend.md": {
+    "mtime": 1780770903.610516,
+    "ast_hash": "a4632e7e8b4c46a67b54ccb9b93a8861",
+    "semantic_hash": "a4632e7e8b4c46a67b54ccb9b93a8861"
+  },
+  "D:\\Quant\\strategies\\trend-meter\\trend-meter.md": {
+    "mtime": 1780770878.3722558,
+    "ast_hash": "5307a0165d3b22fe08ea4c13f7e4ae9e",
+    "semantic_hash": "5307a0165d3b22fe08ea4c13f7e4ae9e"
+  },
+  "D:\\Quant\\backtest_results\\donchian_v1_sol4h_2023.png": {
+    "mtime": 1780768204.4526422,
+    "ast_hash": "4c3cbb4e3a75ee66de69e038a219d983",
+    "semantic_hash": "4c3cbb4e3a75ee66de69e038a219d983"
+  }
+}

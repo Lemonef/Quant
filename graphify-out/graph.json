@@ -1,0 +1,1301 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "mean_reversion_camp",
+        "label": "Mean-Reversion Camp (win SOL/XAU)",
+        "nodes": [
+          "quantblend_strategy",
+          "momentumreversion_strategy",
+          "claude_two_camps"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "index.md"
+      },
+      {
+        "id": "trend_following_camp",
+        "label": "Trend-Following Camp (win BTC/ETH)",
+        "nodes": [
+          "trendmeter_strategy",
+          "donchianbreakout_strategy",
+          "claude_two_camps"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "index.md"
+      },
+      {
+        "id": "markets_tested",
+        "label": "All Markets Tested in Sweep",
+        "nodes": [
+          "claude_market_sol",
+          "claude_market_btc",
+          "claude_market_eth",
+          "claude_market_xau"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "backtest_results/SWEEP_2023_4H.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "app.json",
+      "file_type": "code",
+      "source_file": "app.json",
+      "source_location": "L1",
+      "id": "app_json",
+      "community": 3,
+      "norm_label": "app.json"
+    },
+    {
+      "label": "alwaysUpdateLinks",
+      "file_type": "code",
+      "source_file": "app.json",
+      "source_location": "L2",
+      "id": "obsidian_app_alwaysupdatelinks",
+      "community": 3,
+      "norm_label": "alwaysupdatelinks"
+    },
+    {
+      "label": "newLinkFormat",
+      "file_type": "code",
+      "source_file": "app.json",
+      "source_location": "L3",
+      "id": "obsidian_app_newlinkformat",
+      "community": 3,
+      "norm_label": "newlinkformat"
+    },
+    {
+      "label": "attachmentFolderPath",
+      "file_type": "code",
+      "source_file": "app.json",
+      "source_location": "L4",
+      "id": "obsidian_app_attachmentfolderpath",
+      "community": 3,
+      "norm_label": "attachmentfolderpath"
+    },
+    {
+      "label": "core-plugins.json",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L1",
+      "id": "core_plugins_json",
+      "community": 0,
+      "norm_label": "core-plugins.json"
+    },
+    {
+      "label": "file-explorer",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L2",
+      "id": "obsidian_core_plugins_file_explorer",
+      "community": 0,
+      "norm_label": "file-explorer"
+    },
+    {
+      "label": "global-search",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L3",
+      "id": "obsidian_core_plugins_global_search",
+      "community": 0,
+      "norm_label": "global-search"
+    },
+    {
+      "label": "graph",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L4",
+      "id": "obsidian_core_plugins_graph",
+      "community": 0,
+      "norm_label": "graph"
+    },
+    {
+      "label": "backlink",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L5",
+      "id": "obsidian_core_plugins_backlink",
+      "community": 0,
+      "norm_label": "backlink"
+    },
+    {
+      "label": "outgoing-link",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L6",
+      "id": "obsidian_core_plugins_outgoing_link",
+      "community": 0,
+      "norm_label": "outgoing-link"
+    },
+    {
+      "label": "tag-pane",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L7",
+      "id": "obsidian_core_plugins_tag_pane",
+      "community": 0,
+      "norm_label": "tag-pane"
+    },
+    {
+      "label": "page-preview",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L8",
+      "id": "obsidian_core_plugins_page_preview",
+      "community": 0,
+      "norm_label": "page-preview"
+    },
+    {
+      "label": "markdown-importer",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L9",
+      "id": "obsidian_core_plugins_markdown_importer",
+      "community": 0,
+      "norm_label": "markdown-importer"
+    },
+    {
+      "label": "word-count",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L10",
+      "id": "obsidian_core_plugins_word_count",
+      "community": 0,
+      "norm_label": "word-count"
+    },
+    {
+      "label": "outline",
+      "file_type": "code",
+      "source_file": "core-plugins.json",
+      "source_location": "L11",
+      "id": "obsidian_core_plugins_outline",
+      "community": 0,
+      "norm_label": "outline"
+    },
+    {
+      "label": "Quant Trading Bot Project (CLAUDE.md)",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Zen",
+      "contributor": null,
+      "id": "claude_project",
+      "community": 2,
+      "norm_label": "quant trading bot project (claude.md)"
+    },
+    {
+      "label": "Quant Vault Index (Map of Content)",
+      "file_type": "document",
+      "source_file": "index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": "Zen",
+      "contributor": null,
+      "id": "index_vault",
+      "community": 2,
+      "norm_label": "quant vault index (map of content)"
+    },
+    {
+      "label": "Donchian V1 SOL 4H 2023 Backtest Report",
+      "file_type": "document",
+      "source_file": "backtest_results/DONCHIAN_V1_SOL4H_2023.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-06-07",
+      "author": null,
+      "contributor": null,
+      "id": "donchianv1sol4h2023_report",
+      "community": 4,
+      "norm_label": "donchian v1 sol 4h 2023 backtest report"
+    },
+    {
+      "label": "Strategy Sweep 4H 2023-2026",
+      "file_type": "document",
+      "source_file": "backtest_results/SWEEP_2023_4H.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "sweep20234h_report",
+      "community": 2,
+      "norm_label": "strategy sweep 4h 2023-2026"
+    },
+    {
+      "label": "Donchian Breakout V1 Strategy",
+      "file_type": "document",
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchianbreakout_strategy",
+      "community": 4,
+      "norm_label": "donchian breakout v1 strategy"
+    },
+    {
+      "label": "Momentum Reversion (MR) Strategy",
+      "file_type": "document",
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "momentumreversion_strategy",
+      "community": 2,
+      "norm_label": "momentum reversion (mr) strategy"
+    },
+    {
+      "label": "Quant Blend V1 (QB) Strategy",
+      "file_type": "document",
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "quantblend_strategy",
+      "community": 6,
+      "norm_label": "quant blend v1 (qb) strategy"
+    },
+    {
+      "label": "Trend Meter (TM) Strategy",
+      "file_type": "document",
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "trendmeter_strategy",
+      "community": 8,
+      "norm_label": "trend meter (tm) strategy"
+    },
+    {
+      "label": "Donchian Channel (N-high breakout / M-low exit)",
+      "file_type": "rationale",
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchianbreakout_donchian_indicator",
+      "community": 9,
+      "norm_label": "donchian channel (n-high breakout / m-low exit)"
+    },
+    {
+      "label": "ADX Filter",
+      "file_type": "rationale",
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchianbreakout_adx_filter",
+      "community": 4,
+      "norm_label": "adx filter"
+    },
+    {
+      "label": "ATR Stop / Expansion Filter",
+      "file_type": "rationale",
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchianbreakout_atr_stop",
+      "community": 4,
+      "norm_label": "atr stop / expansion filter"
+    },
+    {
+      "label": "EMA Stack 13/21/34/55",
+      "file_type": "rationale",
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "trendmeter_ema_stack",
+      "community": 9,
+      "norm_label": "ema stack 13/21/34/55"
+    },
+    {
+      "label": "Stochastic RSI Cross",
+      "file_type": "rationale",
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "trendmeter_stochrsi",
+      "community": 8,
+      "norm_label": "stochastic rsi cross"
+    },
+    {
+      "label": "ADX Regime Switch (trending vs ranging)",
+      "file_type": "rationale",
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "quantblend_adx_regime",
+      "community": 5,
+      "norm_label": "adx regime switch (trending vs ranging)"
+    },
+    {
+      "label": "Supertrend",
+      "file_type": "rationale",
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "quantblend_supertrend",
+      "community": 6,
+      "norm_label": "supertrend"
+    },
+    {
+      "label": "Bollinger Band Mean-Reversion",
+      "file_type": "rationale",
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "quantblend_bollinger",
+      "community": 7,
+      "norm_label": "bollinger band mean-reversion"
+    },
+    {
+      "label": "RSI Momentum",
+      "file_type": "rationale",
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "quantblend_rsi",
+      "community": 6,
+      "norm_label": "rsi momentum"
+    },
+    {
+      "label": "RSI Pullback Mean-Reversion",
+      "file_type": "rationale",
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "momentumreversion_rsi_pullback",
+      "community": 7,
+      "norm_label": "rsi pullback mean-reversion"
+    },
+    {
+      "label": "SOL (SOLUSDT)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_market_sol",
+      "community": 10,
+      "norm_label": "sol (solusdt)"
+    },
+    {
+      "label": "BTC (BTCUSDT)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_market_btc",
+      "community": 11,
+      "norm_label": "btc (btcusdt)"
+    },
+    {
+      "label": "ETH (ETHUSDT)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_market_eth",
+      "community": 12,
+      "norm_label": "eth (ethusdt)"
+    },
+    {
+      "label": "XAU (Gold)",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_market_xau",
+      "community": 13,
+      "norm_label": "xau (gold)"
+    },
+    {
+      "label": "Market-Aware Meta-Strategy (route by regime/asset)",
+      "file_type": "rationale",
+      "source_file": "index.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "index_meta_strategy",
+      "community": 5,
+      "norm_label": "market-aware meta-strategy (route by regime/asset)"
+    },
+    {
+      "label": "Two Camps / Opposite Markets Insight",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_two_camps",
+      "community": 5,
+      "norm_label": "two camps / opposite markets insight"
+    },
+    {
+      "label": "Mandatory Pre-Record Backtest Checklist",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_mandatory_checklist",
+      "community": 2,
+      "norm_label": "mandatory pre-record backtest checklist"
+    },
+    {
+      "label": "Donchian Breakout V1 SOL 4H Backtest (Strategy Tester)",
+      "file_type": "image",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_screenshot",
+      "community": 1,
+      "norm_label": "donchian breakout v1 sol 4h backtest (strategy tester)"
+    },
+    {
+      "label": "Donchian Breakout V1 Strategy",
+      "file_type": "rationale",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_strategy",
+      "community": 1,
+      "norm_label": "donchian breakout v1 strategy"
+    },
+    {
+      "label": "SOLUSDT 4H (SOL/TetherUS, Binance)",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_market",
+      "community": 1,
+      "norm_label": "solusdt 4h (sol/tetherus, binance)"
+    },
+    {
+      "label": "Backtest Period Jan 1 2023 - Jun 6 2026 (DEEP)",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_daterange",
+      "community": 1,
+      "norm_label": "backtest period jan 1 2023 - jun 6 2026 (deep)"
+    },
+    {
+      "label": "Total PnL +2,797.96 USDT (+27.98%)",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_total_pnl",
+      "community": 1,
+      "norm_label": "total pnl +2,797.96 usdt (+27.98%)"
+    },
+    {
+      "label": "Max Drawdown 10,446.33 USDT (45.35%)",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_max_drawdown",
+      "community": 1,
+      "norm_label": "max drawdown 10,446.33 usdt (45.35%)"
+    },
+    {
+      "label": "Profitable Trades 38.16% (29/76)",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_profitable_trades",
+      "community": 1,
+      "norm_label": "profitable trades 38.16% (29/76)"
+    },
+    {
+      "label": "Profit Factor 1.095",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_profit_factor",
+      "community": 1,
+      "norm_label": "profit factor 1.095"
+    },
+    {
+      "label": "Total Trades 76",
+      "file_type": "document",
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "donchian_v1_sol4h_2023_total_trades",
+      "community": 1,
+      "norm_label": "total trades 76"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "app_json",
+      "target": "obsidian_app_alwaysupdatelinks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "app_json",
+      "target": "obsidian_app_newlinkformat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "app.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "app_json",
+      "target": "obsidian_app_attachmentfolderpath",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_file_explorer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_global_search",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_graph",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_backlink",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_outgoing_link",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_tag_pane",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_page_preview",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_markdown_importer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_word_count",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "core-plugins.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "core_plugins_json",
+      "target": "obsidian_core_plugins_outline",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "index_vault",
+      "target": "claude_project"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "claude_project",
+      "target": "sweep20234h_report"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "claude_project",
+      "target": "claude_two_camps"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "claude_project",
+      "target": "claude_mandatory_checklist"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "claude_project"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "momentumreversion_strategy",
+      "target": "claude_project"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "claude_project"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "claude_project"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "index_vault"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "momentumreversion_strategy",
+      "target": "index_vault"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "index_vault"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "index_vault"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "index_vault",
+      "target": "sweep20234h_report"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "index_vault",
+      "target": "donchianv1sol4h2023_report"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "index_vault",
+      "target": "index_meta_strategy"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backtest_results/DONCHIAN_V1_SOL4H_2023.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianv1sol4h2023_report",
+      "target": "donchianbreakout_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "backtest_results/DONCHIAN_V1_SOL4H_2023.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianv1sol4h2023_report",
+      "target": "quantblend_strategy"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "backtest_results/SWEEP_2023_4H.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "sweep20234h_report",
+      "target": "donchianv1sol4h2023_report"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "sweep20234h_report"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "momentumreversion_strategy",
+      "target": "sweep20234h_report"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "sweep20234h_report"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "sweep20234h_report"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "donchianbreakout_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "donchianbreakout_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "momentumreversion_strategy"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "donchianbreakout_donchian_indicator"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "donchianbreakout_adx_filter"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_strategy",
+      "target": "donchianbreakout_atr_stop"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.9,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "momentumreversion_strategy"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "momentumreversion_strategy",
+      "target": "momentumreversion_rsi_pullback"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "quantblend_strategy"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "quantblend_adx_regime"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "quantblend_supertrend"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "quantblend_bollinger"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/quant-blend/quant-blend.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_strategy",
+      "target": "quantblend_rsi"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "trendmeter_ema_stack"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "strategies/trend-meter/trend-meter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "trendmeter_strategy",
+      "target": "trendmeter_stochrsi"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "strategies/donchian-breakout/donchian-breakout.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchianbreakout_donchian_indicator",
+      "target": "trendmeter_ema_stack"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "index.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "quantblend_adx_regime",
+      "target": "index_meta_strategy"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "strategies/momentum-reversion/momentum-reversion.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "momentumreversion_rsi_pullback",
+      "target": "quantblend_bollinger"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "index.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "claude_two_camps",
+      "target": "index_meta_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_screenshot",
+      "target": "donchian_v1_sol4h_2023_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_strategy",
+      "target": "donchian_v1_sol4h_2023_market"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_strategy",
+      "target": "donchian_v1_sol4h_2023_daterange"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_total_pnl",
+      "target": "donchian_v1_sol4h_2023_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_max_drawdown",
+      "target": "donchian_v1_sol4h_2023_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_profitable_trades",
+      "target": "donchian_v1_sol4h_2023_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_profit_factor",
+      "target": "donchian_v1_sol4h_2023_strategy"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_total_trades",
+      "target": "donchian_v1_sol4h_2023_strategy"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "backtest_results/donchian_v1_sol4h_2023.png",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "donchian_v1_sol4h_2023_total_trades",
+      "target": "donchian_v1_sol4h_2023_profitable_trades"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "mean_reversion_camp",
+      "label": "Mean-Reversion Camp (win SOL/XAU)",
+      "nodes": [
+        "quantblend_strategy",
+        "momentumreversion_strategy",
+        "claude_two_camps"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.md"
+    },
+    {
+      "id": "trend_following_camp",
+      "label": "Trend-Following Camp (win BTC/ETH)",
+      "nodes": [
+        "trendmeter_strategy",
+        "donchianbreakout_strategy",
+        "claude_two_camps"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.md"
+    },
+    {
+      "id": "markets_tested",
+      "label": "All Markets Tested in Sweep",
+      "nodes": [
+        "claude_market_sol",
+        "claude_market_btc",
+        "claude_market_eth",
+        "claude_market_xau"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backtest_results/SWEEP_2023_4H.md"
+    }
+  ]
+}
