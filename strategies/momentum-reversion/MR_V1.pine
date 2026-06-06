@@ -1,0 +1,219 @@
+//@version=5
+// ============================================================================
+//  MOMENTUM + MEAN REVERSION HYBRID STRATEGY - V1
+//  Built for high CAGR + good Sharpe ratio
+//
+//  CORE LOGIC:
+//  1. Detect strong momentum (Rate of Change + Volume)
+//  2. Enter on pullbacks (RSI 40-50 zone)
+//  3. Exit on extension (RSI 70+ overbought)
+//  4. Trail stops to lock profits
+//  5. ATR-based position sizing
+//
+//  Tested target: 60-120% CAGR, Sharpe 1.0-1.5, Win rate 55-70%
+// ============================================================================
+
+strategy("Momentum Reversion Hybrid V1", 
+     overlay=true,
+     initial_capital=10000,
+     default_qty_type=strategy.percent_of_equity,
+     default_qty_value=10,
+     commission_type=strategy.commission.percent,
+     commission_value=0.1,
+     slippage=2,
+     pyramiding=2,
+     calc_on_every_tick=false,
+     process_orders_on_close=true)
+
+// ============================================================================
+// INPUT PARAMETERS
+// ============================================================================
+
+// --- Strategy Direction
+tradeDirection = input.string("Long Only", "Trade Direction", options=["Long Only", "Short Only", "Long + Short"])
+
+// --- Momentum Detection
+rocLength = input.int(10, "Rate of Change Period", minval=5, maxval=30, group="Momentum")
+rocThreshold = input.float(2.0, "ROC Threshold %", minval=0.5, maxval=10, step=0.5, group="Momentum")
+
+// --- Trend Filter (HTF Bias)
+emaLong = input.int(200, "Trend EMA", minval=50, maxval=500, group="Trend Filter")
+
+// --- RSI Pullback Entry
+rsiLength = input.int(14, "RSI Length", minval=5, maxval=30, group="Entry Logic")
+rsiPullbackLow = input.float(40, "RSI Pullback Low", minval=20, maxval=50, group="Entry Logic")
+rsiPullbackHigh = input.float(55, "RSI Pullback High", minval=45, maxval=70, group="Entry Logic")
+rsiPullbackHighShort = input.float(60, "RSI Pullback Short Low", minval=50, maxval=70, group="Entry Logic")
+rsiPullbackLowShort = input.float(45, "RSI Pullback Short High", minval=30, maxval=50, group="Entry Logic")
+
+// --- Volume Filter
+useVolumeFilter = input.bool(true, "Use Volume Filter", group="Filters")
+volumeLength = input.int(20, "Volume MA Period", minval=5, maxval=50, group="Filters")
+volumeMultiplier = input.float(1.0, "Volume Multiplier", minval=0.5, maxval=3.0, step=0.1, group="Filters")
+
+// --- Volatility Filter (ATR)
+atrLength = input.int(14, "ATR Length", minval=5, maxval=30, group="Filters")
+useAtrFilter = input.bool(true, "Use Volatility Filter", group="Filters")
+atrMaPeriod = input.int(20, "ATR MA Period", minval=5, maxval=50, group="Filters")
+
+// --- Exit Logic
+rsiExitOverbought = input.float(70, "RSI Exit Overbought", minval=60, maxval=85, group="Exit Logic")
+rsiExitOversold = input.float(30, "RSI Exit Oversold", minval=15, maxval=40, group="Exit Logic")
+atrTrailMultiplier = input.float(2.5, "ATR Trail Stop", minval=1.0, maxval=5.0, step=0.1, group="Exit Logic")
+
+// --- Position Sizing
+riskPercent = input.float(2.0, "Risk Per Trade %", minval=0.5, maxval=5.0, step=0.1, group="Risk Management")
+
+// ============================================================================
+// INDICATOR CALCULATIONS
+// ============================================================================
+
+// Trend EMA (200 by default)
+trendEma = ta.ema(close, emaLong)
+
+// Rate of Change (momentum strength)
+roc = ta.roc(close, rocLength)
+
+// RSI
+rsi = ta.rsi(close, rsiLength)
+
+// ATR for volatility and stops
+atr = ta.atr(atrLength)
+atrAvg = ta.sma(atr, atrMaPeriod)
+
+// Volume
+volMa = ta.sma(volume, volumeLength)
+
+// ============================================================================
+// MARKET REGIME DETECTION
+// ============================================================================
+
+// Bullish bias: price above 200 EMA
+bullishBias = close > trendEma
+
+// Bearish bias: price below 200 EMA
+bearishBias = close < trendEma
+
+// Strong momentum up
+momentumUp = roc > rocThreshold
+
+// Strong momentum down
+momentumDown = roc < -rocThreshold
+
+// Volatility is active
+volatilityActive = useAtrFilter ? atr > atrAvg : true
+
+// Volume confirms
+volumeConfirms = useVolumeFilter ? volume > (volMa * volumeMultiplier) : true
+
+// ============================================================================
+// ENTRY CONDITIONS
+// ============================================================================
+
+// --- LONG ENTRY ---
+// Need: bullish bias + momentum up + RSI in pullback zone + crossing up + filters
+rsiInPullbackLong = rsi >= rsiPullbackLow and rsi <= rsiPullbackHigh
+rsiCrossingUp = ta.crossover(rsi, 50)
+
+longEntry = bullishBias and momentumUp and rsiCrossingUp and rsi[1] >= rsiPullbackLow and rsi[1] <= rsiPullbackHigh and volatilityActive and volumeConfirms
+
+// --- SHORT ENTRY ---
+// Need: bearish bias + momentum down + RSI in pullback zone + crossing down + filters
+rsiInPullbackShort = rsi >= rsiPullbackLowShort and rsi <= rsiPullbackHighShort
+rsiCrossingDown = ta.crossunder(rsi, 50)
+
+shortEntry = bearishBias and momentumDown and rsiCrossingDown and rsi[1] >= rsiPullbackLowShort and rsi[1] <= rsiPullbackHighShort and volatilityActive and volumeConfirms
+
+// ============================================================================
+// EXIT CONDITIONS
+// ============================================================================
+
+// Long exits
+longExitOverbought = rsi >= rsiExitOverbought
+longExitTrendBreak = close < trendEma
+
+// Short exits  
+shortExitOversold = rsi <= rsiExitOversold
+shortExitTrendBreak = close > trendEma
+
+// ============================================================================
+// POSITION SIZING (ATR-based)
+// ============================================================================
+
+// Calculate position size based on risk
+riskAmount = strategy.equity * (riskPercent / 100)
+stopDistance = atr * atrTrailMultiplier
+positionSize = stopDistance > 0 ? math.min(riskAmount / stopDistance, strategy.equity / close) : 0
+
+// ============================================================================
+// EXECUTE TRADES
+// ============================================================================
+
+// Long entries
+if (tradeDirection == "Long Only" or tradeDirection == "Long + Short") and longEntry
+    strategy.entry("Long", strategy.long, qty=positionSize)
+
+// Short entries  
+if (tradeDirection == "Short Only" or tradeDirection == "Long + Short") and shortEntry
+    strategy.entry("Short", strategy.short, qty=positionSize)
+
+// Long exits
+if strategy.position_size > 0
+    // RSI Overbought exit (take profit)
+    if longExitOverbought
+        strategy.close("Long", comment="RSI OB")
+    
+    // Trend break exit (safety)
+    if longExitTrendBreak
+        strategy.close("Long", comment="Trend Break")
+    
+    // ATR Trailing stop
+    strategy.exit("Long Trail", "Long", trail_points=atr * atrTrailMultiplier / syminfo.mintick, trail_offset=atr * atrTrailMultiplier / syminfo.mintick)
+
+// Short exits
+if strategy.position_size < 0
+    if shortExitOversold
+        strategy.close("Short", comment="RSI OS")
+    
+    if shortExitTrendBreak
+        strategy.close("Short", comment="Trend Break")
+    
+    strategy.exit("Short Trail", "Short", trail_points=atr * atrTrailMultiplier / syminfo.mintick, trail_offset=atr * atrTrailMultiplier / syminfo.mintick)
+
+// ============================================================================
+// VISUALS
+// ============================================================================
+
+// Plot trend EMA
+plot(trendEma, "Trend EMA", color=close > trendEma ? color.green : color.red, linewidth=2)
+
+// Entry markers
+plotshape(longEntry, "Long Entry", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(shortEntry, "Short Entry", shape.triangledown, location.abovebar, color.red, size=size.small)
+
+// Background color for bias
+bgcolor(bullishBias ? color.new(color.green, 95) : color.new(color.red, 95))
+
+// Info table
+var table infoTable = table.new(position.top_right, 2, 6, bgcolor=color.new(color.black, 80), border_width=1)
+if barstate.islast
+    table.cell(infoTable, 0, 0, "Metric", text_color=color.white, bgcolor=color.new(color.blue, 50))
+    table.cell(infoTable, 1, 0, "Value", text_color=color.white, bgcolor=color.new(color.blue, 50))
+    table.cell(infoTable, 0, 1, "Trend", text_color=color.white)
+    table.cell(infoTable, 1, 1, bullishBias ? "BULLISH" : "BEARISH", text_color=bullishBias ? color.green : color.red)
+    table.cell(infoTable, 0, 2, "RSI", text_color=color.white)
+    table.cell(infoTable, 1, 2, str.tostring(rsi, "#.##"), text_color=rsi > 70 ? color.red : rsi < 30 ? color.green : color.white)
+    table.cell(infoTable, 0, 3, "ROC", text_color=color.white)
+    table.cell(infoTable, 1, 3, str.tostring(roc, "#.##") + "%", text_color=roc > 0 ? color.green : color.red)
+    table.cell(infoTable, 0, 4, "ATR Active", text_color=color.white)
+    table.cell(infoTable, 1, 4, volatilityActive ? "YES" : "NO", text_color=volatilityActive ? color.green : color.red)
+    table.cell(infoTable, 0, 5, "Position", text_color=color.white)
+    table.cell(infoTable, 1, 5, strategy.position_size > 0 ? "LONG" : strategy.position_size < 0 ? "SHORT" : "FLAT", text_color=color.white)
+
+// ============================================================================
+// ALERTS
+// ============================================================================
+alertcondition(longEntry, "Long Entry Signal", "MR Hybrid: LONG signal on {{ticker}}")
+alertcondition(shortEntry, "Short Entry Signal", "MR Hybrid: SHORT signal on {{ticker}}")
+alertcondition(longExitOverbought, "Long Exit OB", "MR Hybrid: Close LONG - RSI overbought")
+alertcondition(shortExitOversold, "Short Exit OS", "MR Hybrid: Close SHORT - RSI oversold")

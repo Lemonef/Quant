@@ -1,0 +1,122 @@
+﻿//@version=5
+strategy(
+     title             = "TM Long & Short — Final",
+     shorttitle        = "TM Long+Short",
+     overlay           = true,
+     initial_capital   = 10000,
+     default_qty_type  = strategy.percent_of_equity,
+     default_qty_value = 100,
+     commission_type   = strategy.commission.percent,
+     commission_value  = 0.1,
+     slippage          = 2
+ )
+
+// ═══════════════════════════════════════════════════════
+// INPUTS
+// ═══════════════════════════════════════════════════════
+emaBase  = input.int(13, "EMA base line", group="Trend Meter")
+emaFast  = input.int(21, "EMA fast",      group="Trend Meter")
+emaMed   = input.int(34, "EMA med",       group="Trend Meter")
+emaSlow  = input.int(55, "EMA slow",      group="Trend Meter")
+smoothK  = input.int(3,  "SmoothK",       group="Stochastic RSI")
+smoothD  = input.int(3,  "SmoothD",       group="Stochastic RSI")
+rsiLen   = input.int(14, "RSI length",    group="Stochastic RSI")
+stochLen = input.int(14, "Stoch length",  group="Stochastic RSI")
+
+// ═══════════════════════════════════════════════════════
+// TREND METER BANDS
+// ═══════════════════════════════════════════════════════
+emaB = ta.ema(close, emaBase)
+emaF = ta.ema(close, emaFast)
+emaM = ta.ema(close, emaMed)
+emaS = ta.ema(close, emaSlow)
+
+band1Green    = emaB > emaF
+band2Green    = emaF > emaM
+band3Green    = emaM > emaS
+allBandsGreen = band1Green and band2Green and band3Green
+
+band1Red      = not band1Green
+band2Red      = not band2Green
+band3Red      = not band3Green
+allBandsRed   = band1Red and band2Red and band3Red
+
+// ═══════════════════════════════════════════════════════
+// STOCHASTIC RSI
+// ═══════════════════════════════════════════════════════
+rsiVal   = ta.rsi(close, rsiLen)
+stochRaw = ta.stoch(rsiVal, rsiVal, rsiVal, stochLen)
+K        = ta.ema(stochRaw, smoothK)
+D        = ta.ema(K,        smoothD)
+
+stochCrossUp   = ta.crossover(K,  D)
+stochCrossDown = ta.crossunder(K, D)
+
+// ═══════════════════════════════════════════════════════
+// ENTRY & EXIT — LONG & SHORT
+// ═══════════════════════════════════════════════════════
+enterLong  = allBandsGreen and stochCrossUp
+enterShort = allBandsRed   and stochCrossDown
+exitLong   = not allBandsGreen and strategy.position_size > 0
+exitShort  = not allBandsRed   and strategy.position_size < 0
+
+if enterLong
+    strategy.entry("Long",  strategy.long)
+if enterShort
+    strategy.entry("Short", strategy.short)
+if exitLong
+    strategy.close("Long",  comment="Bands flipped red")
+if exitShort
+    strategy.close("Short", comment="Bands flipped green")
+
+// ═══════════════════════════════════════════════════════
+// VISUALS
+// ═══════════════════════════════════════════════════════
+plot(emaB, "EMA Base (13)", color=color.new(color.white,  50), linewidth=1)
+plot(emaF, "EMA Fast (21)", color=color.new(color.green,  30), linewidth=1)
+plot(emaM, "EMA Med  (34)", color=color.new(color.yellow, 30), linewidth=1)
+plot(emaS, "EMA Slow (55)", color=color.new(color.red,    30), linewidth=2)
+
+bgcolor(allBandsGreen ? color.new(color.green, 90) : allBandsRed ? color.new(color.red, 90) : na, title="Band background")
+
+plotshape(enterLong,  title="BUY",
+     style=shape.triangleup,   location=location.belowbar,
+     color=color.lime, size=size.small, text="BUY")
+
+plotshape(enterShort, title="SHORT",
+     style=shape.triangledown, location=location.abovebar,
+     color=color.red,  size=size.small, text="SHORT")
+
+plotshape(exitLong,  title="Exit Long",
+     style=shape.xcross, location=location.abovebar,
+     color=color.orange, size=size.tiny, text="EXIT")
+
+plotshape(exitShort, title="Exit Short",
+     style=shape.xcross, location=location.belowbar,
+     color=color.orange, size=size.tiny, text="EXIT")
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+var table dash = table.new(position.top_right, 2, 7,
+     bgcolor      = color.new(color.black, 60),
+     border_color = color.new(color.gray,  40),
+     border_width = 1,
+     frame_color  = color.new(color.gray,  40),
+     frame_width  = 1)
+
+if barstate.islast
+    table.cell(dash, 0, 0, "TM Long+Short", text_color=color.white, text_size=size.small, bgcolor=color.new(color.navy, 40))
+    table.cell(dash, 1, 0, "Status",        text_color=color.white, text_size=size.small, bgcolor=color.new(color.navy, 40))
+    table.cell(dash, 0, 1, "Band 1 (fast)", text_color=color.white, text_size=size.small)
+    table.cell(dash, 1, 1, band1Green ? "GREEN" : "RED", text_color=band1Green ? color.lime : color.red, text_size=size.small)
+    table.cell(dash, 0, 2, "Band 2 (med)",  text_color=color.white, text_size=size.small)
+    table.cell(dash, 1, 2, band2Green ? "GREEN" : "RED", text_color=band2Green ? color.lime : color.red, text_size=size.small)
+    table.cell(dash, 0, 3, "Band 3 (slow)", text_color=color.white, text_size=size.small)
+    table.cell(dash, 1, 3, band3Green ? "GREEN" : "RED", text_color=band3Green ? color.lime : color.red, text_size=size.small)
+    table.cell(dash, 0, 4, "Stoch K vs D",  text_color=color.white, text_size=size.small)
+    table.cell(dash, 1, 4, K > D ? "K > D ✓" : "K < D", text_color=K > D ? color.lime : color.red, text_size=size.small)
+    table.cell(dash, 0, 5, "Long signal",   text_color=color.white, text_size=size.small)
+    table.cell(dash, 1, 5, allBandsGreen ? "READY" : "WAITING", text_color=allBandsGreen ? color.lime : color.gray, text_size=size.small)
+    table.cell(dash, 0, 6, "Short signal",  text_color=color.white, text_size=size.small)
+    table.cell(dash, 1, 6, allBandsRed ? "READY" : "WAITING", text_color=allBandsRed ? color.red : color.gray, text_size=size.small)

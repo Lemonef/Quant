@@ -1,0 +1,107 @@
+//@version=5
+strategy("Momentum Reversion Hybrid V2 - UNLEASHED", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=15, commission_type=strategy.commission.percent, commission_value=0.1, slippage=2, pyramiding=3, calc_on_every_tick=false, process_orders_on_close=true)
+
+// Inputs
+tradeDirection = input.string("Long Only", "Trade Direction", options=["Long Only", "Short Only", "Long + Short"])
+rocLength = input.int(10, "ROC Period", minval=5, maxval=30, group="Momentum")
+rocThreshold = input.float(1.0, "ROC Threshold %", minval=0.5, maxval=10, step=0.5, group="Momentum")
+emaLong = input.int(200, "Trend EMA", minval=50, maxval=500, group="Trend")
+rsiLength = input.int(14, "RSI Length", group="RSI")
+rsiPullbackLow = input.float(35, "RSI Pullback Low", group="RSI")
+rsiPullbackHigh = input.float(60, "RSI Pullback High", group="RSI")
+rsiPullbackHighShort = input.float(65, "RSI Short Low", group="RSI")
+rsiPullbackLowShort = input.float(40, "RSI Short High", group="RSI")
+atrLength = input.int(14, "ATR Length")
+useAtrFilter = input.bool(true, "Use ATR Filter")
+atrMaPeriod = input.int(20, "ATR MA Period")
+atrTrailMultiplier = input.float(2.0, "ATR Trail")
+riskPercent = input.float(5.0, "Risk %")
+maxPyramids = input.int(3, "Max Pyramid Entries")
+pyramidThreshold = input.float(3.0, "Pyramid Trigger %", minval=1.0, maxval=10.0)
+
+// Calculations
+trendEma = ta.ema(close, emaLong)
+roc = ta.roc(close, rocLength)
+rsi = ta.rsi(close, rsiLength)
+atr = ta.atr(atrLength)
+atrAvg = ta.sma(atr, atrMaPeriod)
+
+// Regime
+bullishBias = close > trendEma
+bearishBias = close < trendEma
+momentumUp = roc > rocThreshold
+momentumDown = roc < -rocThreshold
+volatilityActive = useAtrFilter ? atr > atrAvg : true
+
+// Entry crosses
+rsiCrossingUp = ta.crossover(rsi, 50)
+rsiCrossingDown = ta.crossunder(rsi, 50)
+rsiPrevInLongZone = rsi[1] >= rsiPullbackLow and rsi[1] <= rsiPullbackHigh
+rsiPrevInShortZone = rsi[1] >= rsiPullbackLowShort and rsi[1] <= rsiPullbackHighShort
+
+// Signals (NO volume filter)
+longEntry = bullishBias and momentumUp and rsiCrossingUp and rsiPrevInLongZone and volatilityActive
+shortEntry = bearishBias and momentumDown and rsiCrossingDown and rsiPrevInShortZone and volatilityActive
+
+// Position size (5% risk)
+riskAmount = strategy.equity * (riskPercent / 100)
+stopDistance = atr * atrTrailMultiplier
+positionSize = stopDistance > 0 ? math.min(riskAmount / stopDistance, strategy.equity / close) : 0
+
+// Track entry price for pyramiding
+var float lastEntryPrice = na
+canPyramidLong = strategy.position_size > 0 and not na(lastEntryPrice) and (close - lastEntryPrice) / lastEntryPrice * 100 >= pyramidThreshold and strategy.opentrades < maxPyramids
+canPyramidShort = strategy.position_size < 0 and not na(lastEntryPrice) and (lastEntryPrice - close) / lastEntryPrice * 100 >= pyramidThreshold and strategy.opentrades < maxPyramids
+
+// Execute Long
+if (tradeDirection == "Long Only" or tradeDirection == "Long + Short") and longEntry and strategy.position_size <= 0
+    strategy.entry("Long", strategy.long, qty=positionSize)
+    lastEntryPrice := close
+
+// Pyramid Long
+if (tradeDirection == "Long Only" or tradeDirection == "Long + Short") and canPyramidLong and longEntry
+    strategy.entry("Long+", strategy.long, qty=positionSize * 0.7)
+    lastEntryPrice := close
+
+// Execute Short
+if (tradeDirection == "Short Only" or tradeDirection == "Long + Short") and shortEntry and strategy.position_size >= 0
+    strategy.entry("Short", strategy.short, qty=positionSize)
+    lastEntryPrice := close
+
+// Pyramid Short
+if (tradeDirection == "Short Only" or tradeDirection == "Long + Short") and canPyramidShort and shortEntry
+    strategy.entry("Short+", strategy.short, qty=positionSize * 0.7)
+    lastEntryPrice := close
+
+// LONG EXITS - removed RSI overbought exit, let winners run
+if strategy.position_size > 0
+    // Trend break is the ONLY hard exit
+    if close < trendEma
+        strategy.close("Long", comment="Trend Break")
+        strategy.close("Long+", comment="Trend Break")
+        lastEntryPrice := na
+    // ATR trailing stop catches reversals
+    strategy.exit("Long Trail", "Long", trail_points=atr * atrTrailMultiplier / syminfo.mintick, trail_offset=atr * atrTrailMultiplier / syminfo.mintick)
+    strategy.exit("Long+ Trail", "Long+", trail_points=atr * atrTrailMultiplier / syminfo.mintick, trail_offset=atr * atrTrailMultiplier / syminfo.mintick)
+
+// SHORT EXITS
+if strategy.position_size < 0
+    if close > trendEma
+        strategy.close("Short", comment="Trend Break")
+        strategy.close("Short+", comment="Trend Break")
+        lastEntryPrice := na
+    strategy.exit("Short Trail", "Short", trail_points=atr * atrTrailMultiplier / syminfo.mintick, trail_offset=atr * atrTrailMultiplier / syminfo.mintick)
+    strategy.exit("Short+ Trail", "Short+", trail_points=atr * atrTrailMultiplier / syminfo.mintick, trail_offset=atr * atrTrailMultiplier / syminfo.mintick)
+
+// Reset entry price when flat
+if strategy.position_size == 0
+    lastEntryPrice := na
+
+// Visuals
+plot(trendEma, "Trend EMA", color=close > trendEma ? color.green : color.red, linewidth=2)
+plotshape(longEntry, "Long", shape.triangleup, location.belowbar, color.green, size=size.small)
+plotshape(shortEntry, "Short", shape.triangledown, location.abovebar, color.red, size=size.small)
+plotshape(canPyramidLong and longEntry, "Pyramid", shape.diamond, location.belowbar, color.yellow, size=size.small)
+
+alertcondition(longEntry, "Long Signal", "MR V2 LONG {{ticker}}")
+alertcondition(shortEntry, "Short Signal", "MR V2 SHORT {{ticker}}")
