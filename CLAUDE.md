@@ -29,6 +29,15 @@ Hitting ceiling ~23% CAGR (pyramid + daily TF didn't help).
 ## Target for any new strategy
 CAGR 30%+, WR 55%+, DD <20%, PF 2.0+.
 
+## ★ RECOMMENDED CORE (after full research — backtest_results/QUANT_METHODOLOGY.md)
+**Donchian breakout basket + 200-MA market filter**, long-only, ATR stops, equal-weight 10 coins, 4H.
+Full cycle 2021-2026 (incl 2022 bear): **~25% CAGR, DD ~20%, Sharpe ~1.14**, survives the bear,
+positive out-of-sample. At 1.5x → ~37% CAGR / 29% DD (hits 30%+ target). Pine:
+`strategies/donchian-breakout/PYRAMID_DONCHIAN.pine` (MA filter default ON).
+**Reality check:** Sharpe ~1.0-1.1 is the honest ceiling for robust crypto systematic. 70-80% CAGR
+only via ~3x leverage = ~50% DD (Sharpe preserved). No robust low-DD 70-80% config exists — the
+earlier one was a bug. Momentum (TSMOM/combo) gets Sharpe ~1 too but DD 60-75% (no stops).
+
 ## Key lessons
 - Removing RSI 70 exit = biggest single win (V1→V2 ETH).
 - ADX regime detection fixed Gold DD (32% → 3.76%).
