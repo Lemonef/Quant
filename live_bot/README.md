@@ -17,10 +17,16 @@ python status.py             # see current signals + equity
 ```
 No API key needed (public Binance data, read-only). It never places real orders.
 
-## Schedule on the Azure VPS (Windows)
-Task Scheduler → Create Task → Trigger: every 4 hours → Action:
-`python.exe  D:\Quant\live_bot\paper_bot.py`
-(or just run `python paper_bot.py --loop` in a screen/console that stays open).
+## Schedule on the Azure VPS (Windows) — one-click
+On the VPS, inside this folder:
+1. `setup.bat`           — installs Python libs + runs a test cycle.
+2. `register_task.bat`   — (Run as administrator) schedules it every 4h via Task Scheduler.
+That's it. To watch: `python status.py`. Logs: `bot_run.log`, `equity_log.csv`, `trades.csv`.
+
+Manual alternatives:
+- `run.bat`      — one cycle (what the scheduler calls).
+- `run_loop.bat` — runs forever, cycles every 4h (keep the window open instead of scheduling).
+- Remove task:   `schtasks /Delete /TN QuantPaperBot /F`
 
 ## Config (top of paper_bot.py)
 - `LEVERAGE = 1.0` → set `2.0` for the aggressive sweet spot (≈half-Kelly; ~2× CAGR & DD).

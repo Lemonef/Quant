@@ -9,6 +9,7 @@ __pycache__/
 # live bot runtime state/logs (code is tracked, runtime data is not)
 live_bot/state.json
 live_bot/*.csv
+live_bot/*.log
 
 # OS / editor cruft
 Thumbs.db
