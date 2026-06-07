@@ -137,6 +137,12 @@ def cycle():
     states = {lev: load_state(lev) for lev in LEVELS}
     totals = {lev: 0.0 for lev in LEVELS}
     actions = []
+    # BTC master regime: only go long ANYTHING when BTC > its own 200-MA (cuts correlated crashes)
+    try:
+        bdf = fetch("BTCUSDT"); _,_,bma,_,_ = indicators(bdf); bi = len(bdf)-2
+        btc_ok = bool(bdf.c.iloc[bi] > bma.iloc[bi])
+    except Exception:
+        btc_ok = True
     for c in COINS:
         try: df = fetch(c)
         except Exception as e:
@@ -146,7 +152,7 @@ def cycle():
         atr,adx,ma,donHi,donLo = indicators(df)
         i = len(df)-2
         price, low, high, a = df.c.iloc[i], df.l.iloc[i], df.h.iloc[i], atr.iloc[i]
-        breakout = price > donHi.iloc[i-1] and adx.iloc[i] > ADX_MIN and price > ma.iloc[i]
+        breakout = price > donHi.iloc[i-1] and adx.iloc[i] > ADX_MIN and price > ma.iloc[i] and btc_ok
         breakdown = price < donLo.iloc[i-1]
         for lev in LEVELS:
             cs = states[lev]["coins"][c]

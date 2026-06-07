@@ -113,7 +113,11 @@ def build_signals(df, cfg):
     if strat == "qb_v1":
         out["st_bull"] = supertrend(df, 10, 3.0) == 1
     maf = cfg.get("ma_filter", 0)
-    out["mkt_ok"] = (df.close > df.close.rolling(maf).mean()) if maf else True
+    mok = (df.close > df.close.rolling(maf).mean()) if maf else pd.Series(True, index=df.index)
+    reg = cfg.get("btc_regime")          # external master regime (e.g. BTC>200MA), gates all entries
+    if reg is not None:
+        mok = mok & reg.reindex(df.index).ffill().fillna(False)
+    out["mkt_ok"] = mok
     out["close"] = df.close
     out["high"] = df.high
     out["low"] = df.low
