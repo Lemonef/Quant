@@ -6,6 +6,10 @@ backtest/data/
 __pycache__/
 *.pyc
 
+# live bot runtime state/logs (code is tracked, runtime data is not)
+live_bot/state.json
+live_bot/*.csv
+
 # OS / editor cruft
 Thumbs.db
 .DS_Store
