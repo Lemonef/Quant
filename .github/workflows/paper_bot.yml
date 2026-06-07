@@ -1,0 +1,41 @@
+name: paper-bot
+
+# Runs the paper-trading bot in GitHub's cloud every 4h. No VPS / PC needed.
+on:
+  schedule:
+    - cron: "5 */4 * * *"     # every 4 hours (GitHub may delay a few min)
+  workflow_dispatch:           # lets you run it manually from the Actions tab
+
+permissions:
+  contents: write              # allow committing state back to the repo
+
+concurrency:
+  group: paper-bot             # never run two cycles at once
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install requests pandas numpy
+
+      - name: Run one bot cycle
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT:  ${{ secrets.TG_CHAT }}
+        run: python live_bot/paper_bot.py
+
+      - name: Persist state back to repo
+        run: |
+          git config user.name  "paper-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -f live_bot/state.json live_bot/equity_log.csv live_bot/trades.csv live_bot/dashboard.html
+          git commit -m "paper-bot run $(date -u +%FT%TZ)" || echo "no changes"
+          git push || echo "nothing to push"

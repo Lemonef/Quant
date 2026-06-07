@@ -9,7 +9,7 @@ appends equity to equity_log.csv. Run once per 4H bar (cron / Task Scheduler) or
   python paper_bot.py            # run one cycle
   python paper_bot.py --loop     # run forever, cycle every 4h
 """
-import sys, json, time, csv
+import sys, os, json, time, csv
 from datetime import datetime, timezone
 from pathlib import Path
 import requests, numpy as np, pandas as pd
@@ -40,8 +40,8 @@ BASE = "https://api.binance.com/api/v3/klines"
 # 1) message @BotFather -> /newbot -> copy the token below
 # 2) message your new bot once, then open
 #    https://api.telegram.org/bot<TOKEN>/getUpdates  -> copy "chat":{"id":NUMBER}
-TG_TOKEN = ""   # paste bot token here
-TG_CHAT  = ""   # paste your chat id here
+TG_TOKEN = os.environ.get("TG_TOKEN", "")   # or paste bot token here ("...")
+TG_CHAT  = os.environ.get("TG_CHAT", "")    # or paste your chat id here ("...")
 
 def tg(msg):
     if not TG_TOKEN or not TG_CHAT:
