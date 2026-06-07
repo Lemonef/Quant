@@ -31,7 +31,7 @@ ADX_MIN    = 25
 ATR_LEN    = 14
 ATR_STOP   = 2.5
 RISK_PCT   = 5.0
-LEVERAGE   = 1.0      # set 2.0 for the aggressive sweet spot
+LEVERAGE   = 3.0      # aggressive (≈full-Kelly): ~50-57% DD expected. 1.0 safe, 2.0 = half-Kelly sweet spot
 START_EQUITY = 10000.0
 COST = 0.001 + 0.0005 # commission + slippage per side
 BASE = "https://api.binance.com/api/v3/klines"
