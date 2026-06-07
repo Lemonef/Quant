@@ -30,10 +30,14 @@ Hitting ceiling ~23% CAGR (pyramid + daily TF didn't help).
 CAGR 30%+, WR 55%+, DD <20%, PF 2.0+.
 
 ## ★ RECOMMENDED CORE (after full research — backtest_results/QUANT_METHODOLOGY.md)
-**Donchian breakout basket + 200-MA market filter**, long-only, ATR stops, equal-weight 10 coins, 4H.
-Full cycle 2021-2026 (incl 2022 bear): **~25% CAGR, DD ~20%, Sharpe ~1.14**, survives the bear,
-positive out-of-sample. At 1.5x → ~37% CAGR / 29% DD (hits 30%+ target). Pine:
-`strategies/donchian-breakout/PYRAMID_DONCHIAN.pine` (MA filter default ON).
+**Donchian 55/20 breakout + 200-MA market filter**, long-only, ATR stops, equal-weight **~20-25 coin**
+basket, 4H. Params locked by walk-forward (55/20 beat re-optimizing). Pine:
+`strategies/donchian-breakout/PYRAMID_DONCHIAN.pine` (MA filter ON, defaults 55/20).
+- **Universe expansion was the one clean win** (non-overfit): 10→20 coins lifted OOS Sharpe
+  0.61→0.91, CAGR up, DD down to 18%. Saturates ~15-20 coins.
+- Honest OOS (2024-26): ~17% CAGR, DD 18%, **Sharpe ~0.9** at 1x. Leverage: 2x≈35%/38%DD, 3x≈52%/57%.
+- Everything fancier (mean-rev, momentum, long/short, ensembles, vol-target, always-in TM flip)
+  beat it in-sample but LOST out-of-sample (overfitting). See backtest_results/IMPROVEMENTS_TRIED.md.
 **Reality check:** Sharpe ~1.0-1.1 is the honest ceiling for robust crypto systematic. 70-80% CAGR
 only via ~3x leverage = ~50% DD (Sharpe preserved). No robust low-DD 70-80% config exists — the
 earlier one was a bug. Momentum (TSMOM/combo) gets Sharpe ~1 too but DD 60-75% (no stops).

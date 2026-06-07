@@ -31,6 +31,18 @@ DD ~20%. Out-of-sample (2024-26) is the judge; full-period is inflated by the 20
 3. **Accept the ceiling.** Robust crypto systematic = Sharpe ~0.6-1.0. 70-80% CAGR at low DD does
    not exist here; it only appears via leverage (high DD) or bugs (the one I killed).
 
+## ★ THE ONE THAT WORKED: universe expansion (clean, non-overfit)
+Same core strategy, more coins = more independent trend bets = genuine diversification:
+| Universe | OOS CAGR | OOS DD | OOS Sharpe | 2022 bear Sharpe |
+|---|---|---|---|---|
+| 10 coins | 10.5% | 20.4% | 0.61 | −1.02 |
+| 15 coins | 15.3% | 19.7% | 0.82 | −0.55 |
+| **20 coins** | **17.6%** | **19.2%** | **0.94** | −0.68 |
+
+OOS Sharpe rose 0.61 → 0.94, CAGR up, DD down, bear less bad — all from diversifying the SAME
+fixed rules (not adding parameters). This is the legit way to lift the curve. Leveraged: 20-coin
+base at 2x ≈ 35% CAGR / 38% DD / Sharpe 0.94; 3x ≈ 52% / 57%. Better frontier than the 10-coin one.
+
 ## Recommendation
 Run the **core (Donchian55/20 + MA200, basket)** at the leverage matching your DD tolerance, add a
 **small Long/Short sleeve as a bear hedge** (optional), and consider **universe expansion** as the
