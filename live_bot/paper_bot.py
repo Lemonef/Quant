@@ -96,7 +96,7 @@ def block(name,series,total,derived=False):
     yrs=max(len(ev),1)/(365*6); cagr=((total/START)**(1/yrs)-1) if (yrs>0 and total>0 and len(ev)>=60) else 0.0  # guard: don't annualize warmup (few bars -> nonsense CAGR)
     # Sharpe from per-cycle (4h) equity returns, annualised (6 cycles/day)
     sh=0.0
-    if len(ev)>3:
+    if len(ev)>=60:  # guard: warmup Sharpe on a few bars is nonsense (-> -68 etc.)
         rr=np.array([ev[i]/ev[i-1]-1 for i in range(1,len(ev)) if ev[i-1]])
         if len(rr)>2 and rr.std()>0: sh=float(rr.mean()/rr.std()*np.sqrt(6*365))
     pl=pnls(name); wins=[x for x in pl if x>0]; los=[x for x in pl if x<=0]
@@ -158,24 +158,29 @@ def write_webdata(totals, states, btc_ok=True):
         v2=[{"lev":f"{L}x", **block(f"bookv2_{L}x", [], START, derived=True)} for L in LEVELS]
     tabs.append({"name":"Book v2 (upgraded ★)","levels":v2})
     # Diversified Blend ★ — 40% crypto-trend + 40% gold(PAXG) + 20% cash. ALL on Binance (PAXGUSDT), ONE account.
-    # Shows the VALIDATED 8y BACKTEST (walk-forward + bootstrap), NOT a live-derived stream — a few warmup bars
-    # annualize to nonsense. 1x: 25.8% CAGR / Sharpe 1.24 / -13.4% DD. Leverage scales return & DD (~linear, drag-adjusted).
-    # NOTE: real DD ~2x backtest when sizing live. Reference card until the live sleeve accrues months of history.
+    # LIVE/FORWARD derived track (computed from the live trend sleeve + live PAXG price, no extra trades/state) —
+    # same forward-test basis as every other tab. Accrues real out-of-sample results going forward; sits at start
+    # during warmup (block() guards CAGR/Sharpe under 60 bars so warmup never annualizes to nonsense).
+    # Validated 8y backtest for reference (NOT shown here): 1x 25.8% CAGR / Sharpe 1.24 / -13.4% DD.
     try:
-        BT={1:(25.8,1.24,-13.4),2:(46.0,1.18,-27.0),3:(60.0,1.08,-40.0)}  # (CAGR%, Sharpe, maxDD%)
         dbl=[]
-        for L in LEVELS:
-            cg,shp,dd=BT.get(L,BT[1]); n=96; mr=(1.0+cg/100.0)**(1.0/12.0)-1.0
-            ser=[[f"Y{i//12}M{i%12:02d}", round(START*((1.0+mr)**i),2)] for i in range(n+1)]
-            tot=ser[-1][1]
-            dbl.append({"lev":f"{L}x","equity":round(tot,2),"pnl_pct":round((tot/START-1)*100,2),
-                        "cagr":cg,"maxdd":dd,"sharpe":shp,"wr":0.0,"pf":0.0,"trades":0,
-                        "derived":True,"backtest":True,"series":ser})
-        tabs.append({"name":"Diversified Blend ★ (8y backtest · crypto+gold, all-Binance)","levels":dbl})
+        if len(ts)>1:
+            times=[r[0] for r in ts]; tr=rets(ts)
+            pc=fetch("PAXGUSDT",limit=len(ts)+5)["c"].pct_change().fillna(0).tolist()
+            gr=pc[-len(tr):] if len(pc)>=len(tr) else [0.0]*len(tr)
+            gr=(gr+[0.0]*len(tr))[:len(tr)]
+            for L in LEVELS:
+                eqb=START; ser=[[times[0],START]]
+                for i in range(len(tr)):
+                    eqb*=(1+L*(0.4*tr[i]+0.4*gr[i]))   # +0.2 cash @ 0%
+                    ser.append([times[i+1] if i+1<len(times) else now()[:16],round(eqb,2)])
+                dbl.append({"lev":f"{L}x", **block(f"divblend_{L}x", ser, eqb, derived=True)})
+        else:
+            dbl=[{"lev":f"{L}x", **block(f"divblend_{L}x", [], START, derived=True)} for L in LEVELS]
+        tabs.append({"name":"Diversified Blend ★ (live · crypto+gold, all-Binance)","levels":dbl})
     except Exception:
-        tabs.append({"name":"Diversified Blend ★ (8y backtest · crypto+gold, all-Binance)",
-                     "levels":[{"lev":f"{L}x","equity":START,"pnl_pct":0.0,"cagr":25.8,"maxdd":-13.4,
-                                "sharpe":1.24,"wr":0.0,"pf":0.0,"trades":0,"derived":True,"backtest":True,"series":[]} for L in LEVELS]})
+        tabs.append({"name":"Diversified Blend ★ (live · crypto+gold, all-Binance)",
+                     "levels":[{"lev":f"{L}x", **block(f"divblend_{L}x", [], START, derived=True)} for L in LEVELS]})
     pos=[{"coin":c,"units":round(cs["units"],6),"entry":cs["entry"],"stop":round(cs.get("stop",0),6)}
          for c,cs in states["trend_1x"]["coins"].items() if cs["units"]>0]
     pos+=[{"coin":c+" (flush)","units":round(cs["units"],6),"entry":cs["entry"],"stop":"+5%/2bar"}
