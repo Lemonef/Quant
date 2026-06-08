@@ -181,6 +181,40 @@ def write_webdata(totals, states, btc_ok=True):
     except Exception:
         tabs.append({"name":"Diversified Blend ★ (live · crypto+gold, all-Binance)",
                      "levels":[{"lev":f"{L}x", **block(f"divblend_{L}x", [], START, derived=True)} for L in LEVELS]})
+    # --- Extra recommended tabs (LIVE/FORWARD derived from Binance, additive, block() guarded) ---
+    def derived_tab(name, key, perbar):
+        try:
+            if len(ts)>1 and perbar:
+                times=[r[0] for r in ts]; lv=[]
+                for L in LEVELS:
+                    eqb=START; ser=[[times[0],START]]
+                    for i in range(len(perbar)):
+                        eqb*=(1+L*perbar[i])
+                        ser.append([times[i+1] if i+1<len(times) else now()[:16],round(eqb,2)])
+                    lv.append({"lev":f"{L}x", **block(f"{key}_{L}x", ser, eqb, derived=True)})
+            else:
+                lv=[{"lev":f"{L}x", **block(f"{key}_{L}x", [], START, derived=True)} for L in LEVELS]
+        except Exception:
+            lv=[{"lev":f"{L}x", **block(f"{key}_{L}x", [], START, derived=True)} for L in LEVELS]
+        tabs.append({"name":name,"levels":lv})
+    try:
+        trr=rets(ts) if len(ts)>1 else []
+        def align(sym):
+            try:
+                pc=fetch(sym,limit=len(ts)+5)["c"].pct_change().fillna(0).tolist()
+                a=pc[-len(trr):] if len(pc)>=len(trr) else [0.0]*len(trr)
+                return (a+[0.0]*len(trr))[:len(trr)]
+            except Exception:
+                return [0.0]*len(trr)
+        grr=align("PAXGUSDT"); brr=align("BTCUSDT"); m=len(trr)
+        derived_tab("Gold (PAXG) ★ diversifier","goldph",grr)
+        derived_tab("50/50 Trend+Gold ★ (aggressive)","tg5050",[0.5*trr[i]+0.5*grr[i] for i in range(m)])
+        derived_tab("Blend High-Return ★ (levered ~1.5x)","blendhr",[1.5*(0.4*trr[i]+0.4*grr[i]) for i in range(m)])
+        derived_tab("BTC buy-hold (benchmark)","btchold",brr)
+    except Exception:
+        for nm,k in [("Gold (PAXG) ★ diversifier","goldph"),("50/50 Trend+Gold ★ (aggressive)","tg5050"),
+                     ("Blend High-Return ★ (levered ~1.5x)","blendhr"),("BTC buy-hold (benchmark)","btchold")]:
+            tabs.append({"name":nm,"levels":[{"lev":f"{L}x", **block(f"{k}_{L}x", [], START, derived=True)} for L in LEVELS]})
     pos=[{"coin":c,"units":round(cs["units"],6),"entry":cs["entry"],"stop":round(cs.get("stop",0),6)}
          for c,cs in states["trend_1x"]["coins"].items() if cs["units"]>0]
     pos+=[{"coin":c+" (flush)","units":round(cs["units"],6),"entry":cs["entry"],"stop":"+5%/2bar"}
