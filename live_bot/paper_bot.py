@@ -105,7 +105,7 @@ def block(name,series,total,derived=False):
     sh=0.0
     if len(ev)>=60:  # guard: warmup Sharpe on a few bars is nonsense (-> -68 etc.)
         rr=np.array([ev[i]/ev[i-1]-1 for i in range(1,len(ev)) if ev[i-1]])
-        if len(rr)>2 and rr.std()>0: sh=float(rr.mean()/rr.std()*np.sqrt(6*365))
+        if len(rr)>2 and rr.std()>0: sh=max(min(float(rr.mean()/rr.std()*np.sqrt(6*365)),5.0),-5.0)  # cap ±5 (near-constant series -> giant fake Sharpe)
     pl=pnls(name); wins=[x for x in pl if x>0]; los=[x for x in pl if x<=0]
     wr=len(wins)/len(pl)*100 if pl else 0.0
     pf=sum(wins)/abs(sum(los)) if los and sum(los)!=0 else (0.0 if not wins else 99.99)  # cap (no-loss = "infinite" PF); avoid alarming 999 sentinel
@@ -277,7 +277,13 @@ def write_webdata(totals, states, btc_ok=True):
     data={"updated":now()[:16],"start":START,"n_coins":len(COINS),"tabs":tabs,"positions":pos,
           "regime":"bull" if btc_ok else "bear","bookv2_exposure":1.0 if btc_ok else BEAR_MULT,
           "total_trades":total_trades}
-    web=HERE.parent/"web"; web.mkdir(exist_ok=True); (web/"data.json").write_text(json.dumps(data),encoding="utf-8")
+    web=HERE.parent/"web"; web.mkdir(exist_ok=True)
+    def _clean(o):  # strip NaN/Inf -> 0.0 so the JSON is always valid (else browser res.json() throws, board silently dies)
+        if isinstance(o,float): return o if (o==o and o not in (float("inf"),float("-inf"))) else 0.0
+        if isinstance(o,dict): return {k:_clean(v) for k,v in o.items()}
+        if isinstance(o,list): return [_clean(x) for x in o]
+        return o
+    (web/"data.json").write_text(json.dumps(_clean(data),allow_nan=False),encoding="utf-8")
 
 def cycle():
     accts=[acct(s,L) for s in STRATS for L in LEVELS]
