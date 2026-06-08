@@ -220,6 +220,10 @@ def write_webdata(totals, states, btc_ok=True):
         derived_tab("50/50 Trend+Gold ★ (aggressive)","tg5050",[0.5*trr[i]+0.5*grr[i] for i in range(m)])
         derived_tab("Blend High-Return ★ (levered ~1.5x)","blendhr",[1.5*(0.4*trr[i]+0.4*grr[i]) for i in range(m)])
         derived_tab("BTC buy-hold (benchmark)","btchold",brr)
+        # Blend+ cash-yield: 40/40/20 but the 20% cash earns ~5% APR (Binance Earn/T-bills) instead of 0%.
+        # The swarm's #1 certain free uplift (~+1pp CAGR, same DD). cashbar = 5%/yr per 4h bar (6/day).
+        cy=0.05/(365*6)
+        derived_tab("Blend+ ★ (cash-yield 5%)","divplus",[0.4*trr[i]+0.4*grr[i]+0.2*cy for i in range(m)])
     except Exception:
         pass
     # Funding / Carry ★ — delta-neutral perp funding harvest (the real retail edge; ~8-20% APY, low DD).
