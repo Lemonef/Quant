@@ -231,15 +231,15 @@ def write_webdata(totals, states, btc_ok=True):
                 for i in range(len(base)):
                     floor=0.90*peak; cush=(eqb-floor)/eqb if eqb>0 else 0.0
                     et=max(0.0,min(5.0*cush,1.0))                  # CPPI exposure 0..1 (gross<=1, no financing)
-                    eqb*=(1+L*et*base[i])                          # ride less as equity nears the floor
+                    eqb*=(1+et*base[i])                            # CPPI is <=1x BY DESIGN; no L (2x/3x rows mirror 1x, like the backtest board)
                     peak=max(peak,eqb)
                     ser.append([times[i+1] if i+1<len(times) else now()[:16],round(eqb,2)])
                 cpp.append({"lev":f"{L}x", **block(f"divcppi_{L}x", ser, eqb, derived=True)})
         else:
             cpp=[{"lev":f"{L}x", **block(f"divcppi_{L}x", [], START, derived=True)} for L in LEVELS]
-        tabs.append({"name":"Diversified Blend + CPPI floor ★ risk-off (R3 forward test)","levels":cpp})
+        tabs.append({"name":"Diversified Blend + CPPI floor ★ R3 risk-off","levels":cpp})
     except Exception:
-        tabs.append({"name":"Diversified Blend + CPPI floor ★ risk-off (R3 forward test)",
+        tabs.append({"name":"Diversified Blend + CPPI floor ★ R3 risk-off",
                      "levels":[{"lev":f"{L}x", **block(f"divcppi_{L}x", [], START, derived=True)} for L in LEVELS]})
     # --- Extra recommended tabs (LIVE/FORWARD derived from Binance, additive, block() guarded) ---
     def derived_tab(name, key, perbar):
