@@ -190,6 +190,32 @@ def write_webdata(totals, states, btc_ok=True):
     except Exception:
         tabs.append({"name":"Diversified Blend ★ (live · crypto+gold, all-Binance)",
                      "levels":[{"lev":f"{L}x", **block(f"divblend_{L}x", [], START, derived=True)} for L in LEVELS]})
+    # Diversified Blend · 50/150 SMA regime ★ — NEW tab (additive, does NOT replace the Donchian Diversified Blend above).
+    # Same 40/40/20 (crypto/gold/cash) but the crypto leg is gated by a FASTER 50/150 SMA regime (R3 backtest free-upgrade:
+    # beat canonical 100/200 SMA in 4/5 anchored OOS folds on BTC+PAXG+ETH; weaker in the 2026-bear regime). Forward-tracked
+    # here to paper-test it live before any decision to change the real trend leg. Regime on 300/900 4h-bars = 50d/150d.
+    try:
+        d5050=[]
+        if len(ts)>1:
+            times=[r[0] for r in ts]; tr=rets(ts)
+            pc=fetch("PAXGUSDT",limit=len(ts)+5)["c"].pct_change().fillna(0).tolist()
+            gr=(pc[-len(tr):]+[0.0]*len(tr))[:len(tr)] if len(pc)>=len(tr) else [0.0]*len(tr)
+            bc=fetch("BTCUSDT",limit=1000)["c"]
+            reg=((bc>bc.rolling(300).mean())&(bc>bc.rolling(900).mean())).shift(1).fillna(False).tolist()  # 50d/150d-equiv, lagged (no lookahead)
+            reg=(([False]*len(tr))+reg)[-len(tr):]                          # align regime to the tail of the cycle stream
+            for L in LEVELS:
+                eqb=START; ser=[[times[0],START]]
+                for i in range(len(tr)):
+                    crr=tr[i] if reg[i] else 0.0                            # crypto leg held only when BTC>50&150 SMA, else cash
+                    eqb*=(1+L*(0.4*crr+0.4*gr[i]))                          # +0.2 cash @ 0%
+                    ser.append([times[i+1] if i+1<len(times) else now()[:16],round(eqb,2)])
+                d5050.append({"lev":f"{L}x", **block(f"divblend5050_{L}x", ser, eqb, derived=True)})
+        else:
+            d5050=[{"lev":f"{L}x", **block(f"divblend5050_{L}x", [], START, derived=True)} for L in LEVELS]
+        tabs.append({"name":"Diversified Blend · 50/150 SMA regime ★ (R3 forward test)","levels":d5050})
+    except Exception:
+        tabs.append({"name":"Diversified Blend · 50/150 SMA regime ★ (R3 forward test)",
+                     "levels":[{"lev":f"{L}x", **block(f"divblend5050_{L}x", [], START, derived=True)} for L in LEVELS]})
     # --- Extra recommended tabs (LIVE/FORWARD derived from Binance, additive, block() guarded) ---
     def derived_tab(name, key, perbar):
         try:
