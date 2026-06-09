@@ -186,9 +186,9 @@ def write_webdata(totals, states, btc_ok=True):
                 dbl.append({"lev":f"{L}x", **block(f"divblend_{L}x", ser, eqb, derived=True)})
         else:
             dbl=[{"lev":f"{L}x", **block(f"divblend_{L}x", [], START, derived=True)} for L in LEVELS]
-        tabs.append({"name":"Diversified Blend ★ (live · crypto+gold, all-Binance)","levels":dbl})
+        tabs.append({"name":"Diversified Blend (40/40/20) ★ core","levels":dbl})
     except Exception:
-        tabs.append({"name":"Diversified Blend ★ (live · crypto+gold, all-Binance)",
+        tabs.append({"name":"Diversified Blend (40/40/20) ★ core",
                      "levels":[{"lev":f"{L}x", **block(f"divblend_{L}x", [], START, derived=True)} for L in LEVELS]})
     # Diversified Blend · 50/150 SMA regime ★ — NEW tab (additive, does NOT replace the Donchian Diversified Blend above).
     # Same 40/40/20 (crypto/gold/cash) but the crypto leg is gated by a FASTER 50/150 SMA regime (R3 backtest free-upgrade:
@@ -212,10 +212,35 @@ def write_webdata(totals, states, btc_ok=True):
                 d5050.append({"lev":f"{L}x", **block(f"divblend5050_{L}x", ser, eqb, derived=True)})
         else:
             d5050=[{"lev":f"{L}x", **block(f"divblend5050_{L}x", [], START, derived=True)} for L in LEVELS]
-        tabs.append({"name":"Diversified Blend · 50/150 SMA regime ★ (R3 forward test)","levels":d5050})
+        tabs.append({"name":"Diversified Blend · 50/150 SMA ★ R3 free-upgrade","levels":d5050})
     except Exception:
-        tabs.append({"name":"Diversified Blend · 50/150 SMA regime ★ (R3 forward test)",
+        tabs.append({"name":"Diversified Blend · 50/150 SMA ★ R3 free-upgrade",
                      "levels":[{"lev":f"{L}x", **block(f"divblend5050_{L}x", [], START, derived=True)} for L in LEVELS]})
+    # Diversified Blend + CPPI floor ★ risk-off — NEW tab (additive). Path-dependent drawdown floor on the 40/40/20 blend
+    # (R3 backtest special-case: HALVES CAGR but floors maxDD to ~-6%; floor_frac 0.90, m 5, gross<=1 -> no financing).
+    # Causal: exposure e_t from PRE-cycle equity vs trailing 0.90*peak (de-risk toward cash as equity nears the floor).
+    try:
+        cpp=[]
+        if len(ts)>1:
+            times=[r[0] for r in ts]; tr=rets(ts)
+            pc=fetch("PAXGUSDT",limit=len(ts)+5)["c"].pct_change().fillna(0).tolist()
+            gr=(pc[-len(tr):]+[0.0]*len(tr))[:len(tr)] if len(pc)>=len(tr) else [0.0]*len(tr)
+            base=[0.4*tr[i]+0.4*gr[i] for i in range(len(tr))]      # 40/40/20 blend per-cycle (cash leg @0%)
+            for L in LEVELS:
+                eqb=START; ser=[[times[0],START]]; peak=START
+                for i in range(len(base)):
+                    floor=0.90*peak; cush=(eqb-floor)/eqb if eqb>0 else 0.0
+                    et=max(0.0,min(5.0*cush,1.0))                  # CPPI exposure 0..1 (gross<=1, no financing)
+                    eqb*=(1+L*et*base[i])                          # ride less as equity nears the floor
+                    peak=max(peak,eqb)
+                    ser.append([times[i+1] if i+1<len(times) else now()[:16],round(eqb,2)])
+                cpp.append({"lev":f"{L}x", **block(f"divcppi_{L}x", ser, eqb, derived=True)})
+        else:
+            cpp=[{"lev":f"{L}x", **block(f"divcppi_{L}x", [], START, derived=True)} for L in LEVELS]
+        tabs.append({"name":"Diversified Blend + CPPI floor ★ risk-off (R3 forward test)","levels":cpp})
+    except Exception:
+        tabs.append({"name":"Diversified Blend + CPPI floor ★ risk-off (R3 forward test)",
+                     "levels":[{"lev":f"{L}x", **block(f"divcppi_{L}x", [], START, derived=True)} for L in LEVELS]})
     # --- Extra recommended tabs (LIVE/FORWARD derived from Binance, additive, block() guarded) ---
     def derived_tab(name, key, perbar):
         try:
