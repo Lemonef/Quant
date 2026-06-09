@@ -334,7 +334,7 @@ def cycle():
                     fs.update(units=0.0,entry=0.0,held=0,size=0.0)
                 else: fs["held"]+=1
             elif flush_buy:
-                size=min(3.0,abs(r_prev)/0.10); u=L*size*fs["cash"]*0.95/price
+                size=min(3.0,abs(r_prev)/0.10); u=L*size*fs["cash"]*0.95/price; u=min(u,fs["cash"]*0.95*L/price)  # clamp notional <= L*cash (size no longer stacks on L -> kills the ~8.5x over-leverage)
                 if u>0:
                     fs["cash"]-=u*price*(1+COST); fs.update(units=u,entry=price,held=1,size=size)
                     log_trade([now(),acct("flush",L),c,"BUY",round(price,6),round(u,6),f"flush {r_prev*100:.0f}%",""])
