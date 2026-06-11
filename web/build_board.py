@@ -132,7 +132,6 @@ HTML = r"""<!doctype html>
  .wrap{max-width:1500px}
  .cols{display:block}
  .left{width:100%;margin-bottom:18px;overflow-x:auto} .right{width:100%}
- .right .card{max-width:820px}
  #t{width:100%;border-collapse:collapse;font-size:11px} #t th,#t td{padding:6px 7px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
  #t th{font-family:var(--mono);color:var(--mut);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer} #t td.l,#t th.l{text-align:left}
  #t td{font-family:var(--mono)}
@@ -144,14 +143,14 @@ HTML = r"""<!doctype html>
  .benchmark{background:rgba(183,156,255,.12);color:var(--accent2);border:1px solid rgba(183,156,255,.3)}
  .research{background:rgba(244,184,96,.12);color:var(--warn);border:1px dashed rgba(244,184,96,.5)}
  #cv{width:100%;height:300px;background:var(--ink2);border:1px solid var(--line);border-radius:10px}
- .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+ .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:10px}
  .kpi{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
  .kpi .k{font-family:var(--mono);color:var(--mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase} .kpi .v{font-family:var(--mono);font-size:19px;font-weight:700;margin-top:2px}
  .bnote{font-family:var(--mono);font-size:12px;color:var(--warn);margin-top:10px}
  .banner{border-radius:10px;padding:10px 14px;margin:0 0 10px;max-width:920px;font-size:12.5px;line-height:1.5}
  .banner.gross{border-left:3px solid var(--warn);background:rgba(244,184,96,.06);color:#e8c98a}
  .banner.live{border-left:3px solid var(--up);background:rgba(39,211,138,.06);color:#9fe3bd}
- .kpis2{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 4px}
+ .kpis2{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:8px 0 4px}
  .kpis2 .kpi{padding:8px 10px} .kpis2 .v{font-size:15px}
  .extranote{font-family:var(--mono);font-size:10px;color:var(--dim);margin:2px 0 8px;line-height:1.4}
  .heat{margin-top:14px;overflow-x:auto}
