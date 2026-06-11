@@ -3,97 +3,89 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Strategy Lab — QuantBot candidates, honestly scored</title>
-<style>
-  :root{--bg:#0b0e14;--card:#141a24;--line:#222b39;--mut:#8b97a7;--up:#16c784;--dn:#ea3943;--warn:#f6c177;--txt:#e8edf3;--accent:#90cdf4}
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:1080px;margin:0 auto;padding:24px}
-  h1{font-size:20px;font-weight:600;margin:0 0 2px} h2{font-size:15px;margin:24px 0 8px;color:#cdd7e3}
-  .sub{color:var(--mut);font-size:13px;margin-bottom:14px;line-height:1.5}
-  a{color:var(--accent);text-decoration:none;font-weight:600}
-  .nav{margin:0 0 16px;display:flex;gap:8px;flex-wrap:wrap}
-  .nav a{background:#15233a;border:1px solid #2b6cb0;border-radius:9px;padding:8px 13px;font-size:13px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
-  table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{color:var(--mut);font-weight:500;font-size:11.5px;text-transform:uppercase}
-  .up{color:var(--up)} .dn{color:var(--dn)} .warn{color:var(--warn)} .mut{color:var(--mut)}
-  .pill{display:inline-block;padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700}
-  .pill.deploy{background:#10301f;color:var(--up)} .pill.cand{background:#3a2a12;color:var(--warn)} .pill.rej{background:#3a1620;color:#f4a3b4}
-  ul{margin:6px 0;padding-left:18px;line-height:1.55} li{margin:3px 0}
-  code{background:#0e141d;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px;color:#cbd5e1}
-  .chk td{font-size:12.5px} footer{color:var(--mut);font-size:12px;margin-top:20px;text-align:center;line-height:1.5}
-</style>
+<title>Strategy Lab — candidates, honestly scored</title>
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <div class="wrap">
-  <h1>Strategy Lab — candidates, honestly scored</h1>
-  <div class="sub">Every bot run through the SAME robustness gauntlet we use in the brain. Numbers re-checked vs the runnable scripts: <b>Trend core reproduced</b> (walkforward.py), <b>Blend base reproduced</b> (book_final.py). Backtests are a <b>ceiling</b>, not a promise — plan real DD ≈ 2× the close-based DD, and none of these has yet survived a LIVE regime change (the real gate). Built 2026-06-11 with Codex (GPT-5.5) + Claude (Opus 4.8) cross-check/audit.</div>
-  <div class="nav"><a href="./index.html">← QuantBot paper book</a><a href="./stocks.html">📈 Stocks</a><a href="./rtn_core.html">RTN-Core spec</a></div>
+  <p class="eyebrow">Validation · The Gauntlet</p>
+  <h1>Strategy <span class="thin">Lab</span></h1>
+  <p class="lede">Every bot run through the SAME robustness gauntlet we use in the brain. Numbers re-checked vs runnable scripts: <b>Trend core reproduced</b> (<code>walkforward.py</code>), <b>blend base reproduced</b> (<code>book_final.py</code>). Backtests are a <b>ceiling</b>, not a promise — plan real DD ≈ 2× the close-based DD, and none of these has survived a LIVE regime change yet (the real gate). Built 2026-06-11, Codex (GPT-5.5) + Claude (Opus 4.8) cross-check + audit.</p>
 
-  <h2>The validation gauntlet (every bot must pass)</h2>
-  <div class="card mut" style="font-size:12.5px;line-height:1.7">
-    <b>1. Walk-forward OOS</b> (train-past→test-future, <code>.shift(1)</code>, OOS ≥ IS, both halves) ·
-    <b>2. Real DD ≈ 2× close-DD</b> (intrabar/liquidation; close fills understate DD) ·
-    <b>3. Black-swan regime survival</b> (2020 COVID / 2022 bear / 2026 bear each) ·
-    <b>4. Year-by-year</b> (is the headline bull-flattered?) ·
-    <b>5. Survivorship</b> (surviving coins only = optimistic) ·
-    <b>6. Fees/funding/slippage</b> (high-turnover dies at real fee) ·
-    <b>7. Bootstrap CI</b> on Sharpe/DD ·
-    <b>8. ≥100 trades/sleeve</b> ·
-    <b>9. Mechanism-backed, not curve-fit</b> (calendar/seasonality = overfit risk) ·
-    <b>10. Leverage ≤2×</b> (DD scales hard, &gt;2× = liquidation tail) ·
-    <b>11. CRITIQUE + AUDIT agents</b> gate every result.
+  <div class="nav">
+    <a class="home" href="./index.html">◆ Strategy Book</a>
+    <a href="./stocks.html">📈 Stocks</a>
+    <a href="./rtn_core.html">⛔ RTN-Core post-mortem</a>
   </div>
 
-  <h2>Candidate bots</h2>
-  <div class="card" style="padding:0">
-  <table>
-    <thead><tr><th>Bot</th><th>OOS Sharpe</th><th>CAGR (1×)</th><th>Close DD</th><th>REAL DD (≈2×)</th><th>Fees / funding?</th><th>Beats BTC?</th><th>Status</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><b>Crypto blend (base)</b> ★<br><span class="mut">.55 trend/.25 flush/.20 crashreb, 4H — book_final.py</span></td>
-        <td class="up">1.28</td><td>~20% (full)</td><td>−9.8%</td><td class="warn">~−20%</td>
-        <td>fees+slip ✓ / funding ✗</td><td>yes (risk-adj)</td><td><span class="pill deploy">DEPLOY (paper)</span></td>
-      </tr>
-      <tr>
-        <td><b>Trend core</b><br><span class="mut">Donchian 55/20 + 200-MA + BTC-regime, long-only, ~20-coin, 4H — walkforward.py</span></td>
-        <td>0.86</td><td>~17%</td><td>−23%</td><td class="warn">~−46%</td>
-        <td>fees+slip ✓ / funding ✗</td><td>yes (risk-adj)</td><td><span class="pill deploy">DEPLOY (paper, core)</span></td>
-      </tr>
-      <tr>
-        <td><b>40/40/20 blend</b><br><span class="mut">crypto-trend / gold / bonds, all-Binance</span></td>
-        <td>1.11</td><td>~16.8%</td><td>−21.8%</td><td class="warn">~−44%</td>
-        <td>fees ✓ / funding ✗</td><td>diversified (lower beta)</td><td><span class="pill deploy">DEPLOY (paper, diversified)</span></td>
-      </tr>
-      <tr>
-        <td><b>RTN-Core</b> (new)<br><span class="mut">rotational top-8 + PIT universe + funding-aware</span></td>
-        <td class="mut">pending</td><td class="mut">pending</td><td class="mut">pending</td><td class="mut">pending</td>
-        <td class="mut">to model funding</td><td class="mut">untested</td><td><span class="pill cand">CANDIDATE</span></td>
-      </tr>
-    </tbody>
-  </table>
+  <h2><span class="n">01</span> Candidate bots</h2>
+  <div class="card flush">
+    <table>
+      <thead><tr><th>Bot</th><th>OOS Sharpe</th><th>CAGR (1×)</th><th>Close DD</th><th>Real DD ≈2×</th><th>Fees / funding</th><th>Beats BTC?</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>★ Crypto blend (base)</b><br><span class="mut" style="font-size:12px">.55 trend / .25 flush / .20 crashreb · 4H · book_final.py</span></td>
+          <td class="num up"><b>1.28</b></td><td class="num">~20%</td><td class="num">−9.8%</td><td class="num warn">~−20%</td>
+          <td class="mut" style="font-size:12px">fees+slip ✓ / funding ✗</td><td>yes (risk-adj)</td><td><span class="badge deploy">Deploy · paper</span></td>
+        </tr>
+        <tr>
+          <td><b>Trend core</b><br><span class="mut" style="font-size:12px">Donchian 55/20 + MA200 + BTC-regime · long-only · ~20-coin · 4H · walkforward.py</span></td>
+          <td class="num">0.86</td><td class="num">~17%</td><td class="num">−23%</td><td class="num warn">~−46%</td>
+          <td class="mut" style="font-size:12px">fees+slip ✓ / funding ✗</td><td>yes (risk-adj)</td><td><span class="badge deploy">Deploy · core</span></td>
+        </tr>
+        <tr>
+          <td><b>40/40/20 blend</b><br><span class="mut" style="font-size:12px">crypto-trend / gold / bonds · all-Binance</span></td>
+          <td class="num">1.11</td><td class="num">~16.8%</td><td class="num">−21.8%</td><td class="num warn">~−44%</td>
+          <td class="mut" style="font-size:12px">fees ✓ / funding ✗</td><td>diversified (lower beta)</td><td><span class="badge deploy">Deploy · diversified</span></td>
+        </tr>
+        <tr>
+          <td><b>RTN-Core</b> (rotational)<br><span class="mut" style="font-size:12px">rank-top-8 + PIT universe + funding-aware · rtn_core_test.py</span></td>
+          <td class="num dn"><b>0.53</b></td><td class="num mut">—</td><td class="num dn">−60%</td><td class="num dn">worse</td>
+          <td class="mut" style="font-size:12px">tested w/ fees</td><td class="dn">no — 0.43 vs 0.48 blend</td><td><span class="badge rej">Killed · not deployed</span></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
-  <div class="card mut" style="font-size:12px">★ Blend base = .55/.25/.20, OOS Sharpe <b>1.28</b> / DD −9.8% (book_final.py, reproduced). ⚠️ Brain research claims a <b>portfolio bear-scaling</b> overlay (book ×0.3 when BTC&lt;200d-MA) lifts this to OOS ~1.57 / DD −7.2% / CAGR ~17.5% — but the audit could NOT locate a runnable script that reproduces 1.57, so it's shown as the verified 1.28 here and the scaling claim stays <b>UNVERIFIED until re-run</b>. Also: the .55/.25/.20 weights were OOS-selected (mild post-selection), so call it "good," not "proven-optimal."</div>
+  <div class="card note">★ Blend base = .55/.25/.20, OOS Sharpe <b>1.28</b> / DD −9.8% (book_final.py, reproduced). ⚠️ Brain research claims a <b>portfolio bear-scaling</b> overlay (book ×0.3 when BTC&lt;200d-MA) lifts this to OOS ~1.57 / DD −7.2% / CAGR ~17.5% — but the audit could NOT locate a runnable script reproducing 1.57, so the verified <b>1.28</b> is shown and the scaling claim stays <b>UNVERIFIED until re-run</b>. The .55/.25/.20 weights were OOS-selected (mild post-selection) → "good," not "proven-optimal." <b class="dn">RTN-Core</b> was tested 2026-06-11 and killed: fails standalone (0.53) AND dilutes the blend (0.43 vs 0.48) AND 0.54-correlated to the core — the rotational/XS-momentum family is now closed.</div>
 
-  <h2>Honest caveats (apply to ALL)</h2>
-  <div class="card warn" style="font-size:12.5px;line-height:1.65">
-    • <b>Bull-flattered:</b> year-by-year the book LOSES in bear (book Sharpe 2022 −0.8, 2026 −1.4) — the high OOS Sharpe leans on bull years. The regime filter (→cash) is what limits the bear damage, not magic.<br>
-    • <b>Real DD ≈ 2× close DD</b> (intrabar + leverage). At 2× leverage, financing ~10% APR on notional; &gt;2× risks liquidation. Plan for it.<br>
-    • <b>Survivorship:</b> backtests use surviving coins → optimistic ceiling. The #1 open fix = point-in-time universe (the RTN-Core gating step).<br>
-    • <b>Funding NOT modeled:</b> backtests cost fees + slippage both sides, but NOT perp funding — so any leveraged/futures CAGR is optimistic. 1× spot is properly costed.<br>
-    • <b>The real gate is unmet:</b> none of these has yet run live through a REGIME CHANGE (bull↔bear). That live survival — not any backtest number — is what unlocks real money (target 3-6 months paper + one regime shift first).<br>
-    • <b>Honest live expectation:</b> ~15–25% CAGR at moderate leverage with real DD ~2× — beats index, NOT magic. Paper-trade before real capital.
+  <h2><span class="n">02</span> The gauntlet <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— every bot must pass</span></h2>
+  <div class="card note" style="line-height:1.9">
+    <b>1.</b> Walk-forward OOS (train→test, <code>.shift(1)</code>, OOS shouldn't collapse) ·
+    <b>2.</b> Real DD ≈ 2× close-DD (intrabar/liquidation) ·
+    <b>3.</b> Black-swan regime survival (2020 COVID / 2022 bear / 2026 bear) ·
+    <b>4.</b> Year-by-year (bull-flattered?) ·
+    <b>5.</b> Survivorship / PIT universe ·
+    <b>6.</b> Fees / funding / slippage ·
+    <b>7.</b> Block-bootstrap CI (p05, not i.i.d.) ·
+    <b>8.</b> ≥100 trades/sleeve ·
+    <b>9.</b> Random-entry + inversion baseline ·
+    <b>10.</b> Beat buy-hold-BTC ·
+    <b>11.</b> Mechanism-backed, not curve-fit ·
+    <b>12.</b> Leverage ≤2× ·
+    <b>13.</b> CRITIQUE + AUDIT agents gate every result (audit verifies the critique too).
   </div>
 
-  <h2>Rejected (failed the gauntlet — discipline, not findings)</h2>
-  <div class="card mut" style="font-size:12.5px;line-height:1.6">
-    Bear-short sleeve (whipsaw + funding bleed, OOS worse) · Donchian ensemble SSRN (OOS 0.73 &lt; 0.86) · AdaptiveTrend arXiv Sharpe 2.41 (uses shorts + 150-coin survivorship, n/a) · vol-targeting (already vol-managed, double-counts) · funding market-timing (high funding = continuation, fade thesis FALSE) · on-chain/liquidation data (mined/decayed, overlaps crashreb) · XS-mom/lowvol/short-reversal (all negative OOS) · HFT lead-lag AVAX +1523% (dies at any real fee) · halving/Q4 seasonality (kept only as small caveated tilt — calendar = overfit risk). <b>The frontier is exhausted; gains now come from construction + execution, not new signals.</b>
+  <h2><span class="n">03</span> Honest caveats <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— apply to ALL</span></h2>
+  <div class="card note warnbox" style="line-height:1.75">
+    • <b>Bull-flattered:</b> year-by-year the book LOSES in bear (Sharpe 2022 −0.8, 2026 −1.4). The regime filter (→cash) limits bear damage — not magic.<br>
+    • <b>Real DD ≈ 2× close DD</b> (intrabar + leverage). At 2× lev, financing ~10% APR on notional; &gt;2× risks liquidation.<br>
+    • <b>Survivorship:</b> backtests use surviving coins → optimistic ceiling. #1 open fix = point-in-time universe.<br>
+    • <b>Funding NOT modeled:</b> fees + slippage costed both sides, but NOT perp funding → any leveraged CAGR is optimistic. 1× spot is properly costed.<br>
+    • <b>The real gate is unmet:</b> none has run live through a regime change (bull↔bear). That live survival — not any backtest — unlocks real money (3-6mo paper + one regime shift first).<br>
+    • <b>Honest live expectation:</b> ~15–25% CAGR at moderate leverage, real DD ~2× — beats index, NOT magic.
+  </div>
+
+  <h2><span class="n">04</span> Rejected <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— failed the gauntlet (discipline, not findings)</span></h2>
+  <div class="card note" style="line-height:1.7">
+    Bear-short sleeve (whipsaw + funding bleed) · Donchian ensemble SSRN (OOS 0.73 &lt; 0.86) · AdaptiveTrend arXiv Sharpe 2.41 (shorts + 150-coin survivorship, n/a) · vol-targeting (double-counts) · funding market-timing (fade thesis FALSE) · on-chain/liquidation data (decayed, overlaps crashreb) · XS-mom / lowvol / short-reversal (all negative OOS) · RTN-Core rotational (0.53, killed) · HFT lead-lag AVAX +1523% (dies at any real fee) · halving/Q4 seasonality (kept only as small caveated tilt). <b class="amber">The frontier is exhausted — gains now come from construction + execution, not new signals.</b>
   </div>
 
   <footer>
-    Trend core + blend base reproduced from runnable scripts (walkforward.py, book_final.py); bear-scaling 1.57 left unverified pending re-run; 40/40/20 from the brain's audited record. Sources: <code>backtest_results/QUANT_METHODOLOGY.md</code>, <code>backtest/walkforward.py</code>, <code>backtest/book_final.py</code>, brain <code>scalping-bot.md</code> / <code>quant-trading-bot.md</code>. Method: <code>skills/backtest-validation-SKILL.md</code>.<br>
-    Research candidates, not live-trading approval. Not financial advice.
+    Trend core + blend base reproduced (walkforward.py, book_final.py); bear-scaling 1.57 unverified pending re-run; 40/40/20 from the audited record; RTN-Core killed (rtn_core_test.py).<br>
+    Sources: backtest_results/QUANT_METHODOLOGY.md · brain scalping-bot.md / quant-trading-bot.md · method: skills/backtest-validation-SKILL.md<br>
+    Research candidates, not live-trading approval · not financial advice
   </footer>
 </div>
+<script type="module" src="./anim.js"></script>
 </body>
 </html>

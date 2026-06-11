@@ -3,56 +3,92 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QuantBot — Live Paper Trading</title>
+<title>QuantBook — strategy book & live paper trading</title>
+<link rel="stylesheet" href="./style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-  :root{--bg:#0b0e14;--card:#141a24;--line:#222b39;--mut:#8b97a7;--up:#16c784;--dn:#ea3943;--txt:#e8edf3}
-  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:ui-sans-serif,system-ui,Segoe UI,Roboto,sans-serif}
-  .wrap{max-width:920px;margin:0 auto;padding:24px}
-  h1{font-size:18px;font-weight:600;margin:0 0 2px} .sub{color:var(--mut);font-size:13px;margin-bottom:16px}
-  .tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-  .tab{background:var(--card);border:1px solid var(--line);color:var(--mut);padding:8px 16px;border-radius:10px;cursor:pointer;font-size:14px}
-  .tab.active{background:#1c2b44;color:#fff;border-color:#3a5180}
-  .chartcard{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
-  th{color:var(--mut);font-weight:500;font-size:12px;text-transform:uppercase}
-  .mut{color:var(--mut)} .up{color:var(--up)} .dn{color:var(--dn)}
-  .pill{display:inline-block;padding:2px 8px;border-radius:20px;background:#1c2531;font-size:12px;color:var(--mut)}
-  footer{color:var(--mut);font-size:12px;margin-top:18px;text-align:center}
-</style>
 </head>
 <body>
 <div class="wrap">
-  <h1>QuantBot — multi-edge paper book</h1>
-  <div class="sub">20-coin Binance basket · 4h on GitHub Actions · <span class="pill" id="updated">loading…</span> <span class="pill" id="regime"></span></div>
-  <div style="margin:0 0 14px"><a href="./stocks.html" style="display:inline-block;background:#15233a;border:1px solid #2b6cb0;color:#90cdf4;text-decoration:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600">📈 Stocks — Spike Hunter paper trades →</a> <a href="./strategy_lab.html" style="display:inline-block;background:#15233a;border:1px solid #2b6cb0;color:#90cdf4;text-decoration:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600">🧪 Strategy Lab — candidates, honestly scored →</a></div>
+  <p class="eyebrow">Crypto Quant · Research Desk</p>
+  <h1>The Strategy <span class="thin">Book</span></h1>
+  <p class="lede">Every edge we've validated, ranked honestly — plus the <b>live paper bot</b> running it on a 20-coin Binance basket, every 4 hours on GitHub Actions. Backtests are a <b>ceiling, not a promise</b>; nothing here has yet survived a live regime change (the real gate).</p>
 
-  <div id="warmup" style="display:none;background:#1c2531;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:14px;color:var(--mut);font-size:13px"></div>
+  <div class="chips">
+    <span class="chip" id="regime"><span class="dot"></span><span>regime…</span></span>
+    <span class="chip" id="updated"><span class="dot"></span><span>loading…</span></span>
+    <span class="chip" id="livestat"><span class="dot"></span><span>live status…</span></span>
+  </div>
+
+  <div class="nav">
+    <a class="home" href="./index.html">◆ Strategy Book</a>
+    <a href="./stocks.html">📈 Stocks — Spike Hunter</a>
+    <a href="./strategy_lab.html">🧪 Strategy Lab — the gauntlet</a>
+    <a href="./rtn_core.html">⛔ RTN-Core — post-mortem</a>
+  </div>
+
+  <h2><span class="n">01</span> Strategy scoreboard</h2>
+  <p class="lede" style="margin-bottom:16px">Backtested edges, ranked. <b class="up">Green</b> = deployable on paper. Numbers reproduced from runnable scripts (<code>walkforward.py</code>, <code>book_final.py</code>) or the audited brain record — <span class="amber">backtest figures, not live results.</span></p>
+  <div class="grid" id="scoreboard"></div>
+
+  <h2><span class="n">02</span> Live paper bot</h2>
+  <p class="lede" style="margin-bottom:14px">The book, running for real (paper money) on GitHub Actions. Tabs = strategies · rows = leverage. <b>This is live, so it's honest — and right now it's flat:</b> a long-only trend book in a chop/early-bull tape takes no position until a breakout fires.</p>
+  <div class="note live" id="warmup" style="display:none;margin-bottom:16px"></div>
 
   <div class="tabs" id="tabs"></div>
-
-  <div class="chartcard" style="padding:0;overflow:hidden">
+  <div class="card flush">
     <table>
-      <thead><tr><th>Leverage</th><th>Equity</th><th>Return</th><th>CAGR*</th><th>Max DD</th><th>Sharpe</th><th>Win%</th><th>PF</th><th>Trades</th></tr></thead>
+      <thead><tr><th>Lev</th><th>Equity</th><th>Return</th><th>CAGR*</th><th>Max DD</th><th>Sharpe</th><th>Win%</th><th>PF</th><th>Trades</th></tr></thead>
       <tbody id="stats"><tr><td colspan="9" class="mut">loading…</td></tr></tbody>
     </table>
   </div>
-  <div id="derivednote" style="display:none;color:var(--mut);font-size:12px;margin:-8px 2px 14px">Derived book (computed from the sleeve return streams) — Win%/PF/Trades shown as “—” since it places no trades of its own. Sharpe & drawdown are real.</div>
-  <div class="chartcard"><canvas id="chart" height="120"></canvas></div>
+  <div id="derivednote" class="note" style="display:none;margin:-6px 2px 14px">Derived book (computed from the sleeve return streams) — Win%/PF/Trades show "—" since it places no trades of its own. Sharpe & drawdown are real.</div>
+  <div class="card"><canvas id="chart" height="118"></canvas></div>
 
-  <div class="chartcard">
+  <h2><span class="n">03</span> Open positions</h2>
+  <div class="card flush">
     <table>
-      <thead><tr><th>Open positions</th><th>Units</th><th>Entry</th><th>Stop</th></tr></thead>
+      <thead><tr><th>Coin</th><th>Units</th><th>Entry</th><th>Stop</th></tr></thead>
       <tbody id="postable"><tr><td colspan="4" class="mut">loading…</td></tr></tbody>
     </table>
   </div>
-  <footer>*CAGR annualized from live equity (noisy early). Tabs = strategies; rows = leverage.
-   Auto-refresh 5 min · paper only, not financial advice</footer>
+
+  <footer>
+    *CAGR annualized from live equity (noisy early). Scoreboard = backtest/audited figures; live section = real paper equity.<br>
+    Auto-refresh 5 min · paper trading only · not financial advice · Lemonef/Trade
+  </footer>
 </div>
 
 <script>
-const LCOL={"1x":"#5b8def","2x":"#16c784","3x":"#f0a830"};
+/* ---- verified strategy scoreboard (backtest / audited — see Strategy Lab) ---- */
+const STRATS=[
+  {name:"Crypto Blend", role:"Core · best risk-adj", c:"var(--up)", big:"1.28", biglab:"OOS Sharpe",
+   desc:".55 trend / .25 flush / .20 crashreb · 4H", m:[["CAGR","~20%"],["Close DD","−9.8%"]], badge:["deploy","Deploy · paper"], star:true},
+  {name:"Trend Core", role:"Foundation", c:"var(--accent)", big:"0.86", biglab:"OOS Sharpe",
+   desc:"Donchian 55/20 + MA200 + BTC-regime gate", m:[["CAGR","~17%"],["Close DD","−23%"]], badge:["deploy","Deploy · core"]},
+  {name:"40/40/20 Blend", role:"Most stable", c:"var(--amber)", big:"1.11", biglab:"Sharpe",
+   desc:"crypto-trend / gold / bonds · diversified", m:[["CAGR","~16.8%"],["Close DD","−21.8%"]], badge:["deploy","Deploy · diversified"]},
+  {name:"Blend High-Return", role:"Max return · high risk", c:"var(--warn)", big:"≤2×", biglab:"Leverage",
+   desc:"levered blend, funding-throttled @1.5×", m:[["Return","highest"],["Real DD","−45→65%"]], badge:["cand","Aggressive · caution"]},
+  {name:"RTN-Core", role:"Tested → killed", c:"var(--dn)", big:"0.53", biglab:"OOS Sharpe",
+   desc:"rotational top-8 — failed both gates", m:[["vs blend","0.43<0.48"],["Corr","0.54"]], badge:["rej","Killed · not deployed"]},
+  {name:"BTC Buy-Hold", role:"Benchmark", c:"var(--mut)", big:"1.0×", biglab:"Beta",
+   desc:"the thing every bot must beat risk-adjusted", m:[["Role","yardstick"],["DD","brutal"]], badge:["bench","Benchmark"]},
+];
+function bots(){
+  document.getElementById('scoreboard').innerHTML=STRATS.map(s=>`
+    <div class="bot" style="--role-c:${s.c}">
+      <div class="role">${s.role}</div>
+      <div class="name">${s.star?'★ ':''}${s.name}</div>
+      <div class="desc">${s.desc}</div>
+      <div class="big" style="color:${s.c}">${s.big}</div>
+      <div class="biglab">${s.biglab}</div>
+      <div class="mrow"><span>${s.m[0][0]} <b>${s.m[0][1]}</b></span><span>${s.m[1][0]} <b>${s.m[1][1]}</b></span></div>
+      <div style="margin-top:12px"><span class="badge ${s.badge[0]}">${s.badge[1]}</span></div>
+    </div>`).join('');
+}
+
+/* ---- live bot ---- */
+const LCOL={"1x":"#7cc4ff","2x":"#27d38a","3x":"#e8a14b"};
 const fmt=n=>'$'+Number(n).toLocaleString(undefined,{maximumFractionDigits:0});
 let DATA=null, active=0, chart=null;
 function render(){
@@ -62,12 +98,13 @@ function render(){
     `<div class="tab ${i===active?'active':''}" onclick="sel(${i})">${t.name}</div>`).join('');
   const tab=tabs[active]; if(!tab) return;
   document.getElementById('stats').innerHTML=tab.levels.map(L=>{
-    const up=L.pnl_pct>=0; const d=L.derived;
+    const up=L.pnl_pct>=0, d=L.derived;
     const sh=L.sharpe!=null?L.sharpe.toFixed(2):'—';
     const wr=d?'—':L.wr+'%', pf=d?'—':L.pf, tr=d?'—':L.trades;
-    return `<tr><td><b style="color:${LCOL[L.lev]||'#999'}">${L.lev}</b></td>
-      <td>${fmt(L.equity)}</td><td class="${up?'up':'dn'}">${up?'+':''}${L.pnl_pct}%</td>
-      <td>${L.cagr}%</td><td class="dn">${L.maxdd}%</td><td><b>${sh}</b></td><td>${wr}</td><td>${pf}</td><td>${tr}</td></tr>`;
+    return `<tr><td><b class="mono" style="color:${LCOL[L.lev]||'#999'}">${L.lev}</b></td>
+      <td class="mono">${fmt(L.equity)}</td><td class="mono ${up?'up':'dn'}">${up?'+':''}${L.pnl_pct}%</td>
+      <td class="mono">${L.cagr}%</td><td class="mono dn">${L.maxdd}%</td><td class="mono"><b>${sh}</b></td>
+      <td class="mono">${wr}</td><td class="mono">${pf}</td><td class="mono">${tr}</td></tr>`;
   }).join('');
   const note=document.getElementById('derivednote');
   if(note) note.style.display=tab.levels.some(L=>L.derived)?'block':'none';
@@ -76,30 +113,33 @@ function render(){
     backgroundColor:'transparent',pointRadius:0,borderWidth:2,tension:.25}));
   if(chart) chart.destroy();
   chart=new Chart(document.getElementById('chart'),{type:'line',data:{labels,datasets:ds},
-    options:{plugins:{legend:{labels:{color:'#e8edf3'}}},
-      scales:{x:{ticks:{color:'#8b97a7',maxTicksLimit:8},grid:{display:false}},y:{ticks:{color:'#8b97a7'},grid:{color:'#1c2531'}}}}});
+    options:{plugins:{legend:{labels:{color:'#e9eef6',font:{family:'JetBrains Mono'}}}},
+      scales:{x:{ticks:{color:'#8a97aa',maxTicksLimit:8,font:{family:'JetBrains Mono'}},grid:{display:false}},
+              y:{ticks:{color:'#8a97aa',font:{family:'JetBrains Mono'}},grid:{color:'#1a2230'}}}}});
 }
 function sel(i){active=i;render();}
 async function load(){
   try{
     DATA=await (await fetch('data.json?ts='+Date.now())).json();
-    document.getElementById('updated').textContent='updated '+DATA.updated+' UTC';
+    const u=document.getElementById('updated'); u.querySelector('span:last-child').textContent='updated '+DATA.updated+' UTC';
     const rg=document.getElementById('regime');
-    if(rg && DATA.regime){const bull=DATA.regime==='bull';
-      rg.textContent=(bull?'🟢 BULL — full size':'🔴 BEAR — Book v2 at '+Math.round((DATA.bookv2_exposure||1)*100)+'%');
-      rg.style.color=bull?'var(--up)':'var(--dn)';}
+    if(DATA.regime){const bull=DATA.regime==='bull'; rg.className='chip '+(bull?'bull':'bear');
+      rg.querySelector('span:last-child').textContent=bull?'BULL — full size':'BEAR — book at '+Math.round((DATA.bookv2_exposure||1)*100)+'%';}
+    const ls=document.getElementById('livestat'), nt=DATA.total_trades||0;
+    ls.querySelector('span:last-child').textContent=nt===0?'0 trades — holding cash':nt+' trades live';
     const wu=document.getElementById('warmup');
-    if(wu){if((DATA.total_trades||0)===0){wu.style.display='block';
-      wu.textContent='⏳ Warming up — bot is live but no entry signals have fired yet (no breakout/flush/crash in recent bars). Equity sits at start until the first trade. This is normal; charts populate as trades occur.';}
-      else wu.style.display='none';}
+    if((nt)===0){wu.style.display='block';
+      wu.innerHTML='⏳ <b>Warming up.</b> The bot is live but no entry signal has fired (no breakout / flush / crash in recent bars), so equity sits at the $10,000 start. This is the strategy working as designed — a trend book stays in cash until a trend appears. Charts populate on the first trade.';}
+    else wu.style.display='none';
     const tb=document.getElementById('postable');
     tb.innerHTML=DATA.positions.length?DATA.positions.map(o=>
-      `<tr><td>${o.coin}</td><td>${o.units}</td><td>${o.entry}</td><td>${o.stop}</td></tr>`).join('')
+      `<tr><td class="mono">${o.coin}</td><td class="mono">${o.units}</td><td class="mono">${o.entry}</td><td class="mono">${o.stop}</td></tr>`).join('')
       :'<tr><td colspan="4" class="mut">No open positions — holding cash.</td></tr>';
     render();
-  }catch(e){document.getElementById('updated').textContent='no data yet — run the bot once';}
+  }catch(e){document.getElementById('updated').querySelector('span:last-child').textContent='no data yet';}
 }
-load(); setInterval(load,300000);
+bots(); load(); setInterval(load,300000);
 </script>
+<script type="module" src="./anim.js"></script>
 </body>
 </html>
