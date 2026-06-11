@@ -1,0 +1,47 @@
+{
+  "trend": {
+    "cagr": 14.4,
+    "sharpe": 0.75,
+    "sortino": 0.63,
+    "calmar": 0.6,
+    "maxdd": -24.1,
+    "gtp": 1.08,
+    "ulcer": 12.6,
+    "cvar": -1.14,
+    "skew": -0.67,
+    "kurt": 27.89,
+    "kratio": 196.7,
+    "muw": 19.3,
+    "n": 9282
+  },
+  "blend": {
+    "cagr": 21.0,
+    "sharpe": 1.7,
+    "sortino": 2.01,
+    "calmar": 2.14,
+    "maxdd": -9.8,
+    "gtp": 1.52,
+    "ulcer": 4.2,
+    "cvar": -1.25,
+    "skew": 1.62,
+    "kurt": 14.79,
+    "kratio": 71.7,
+    "muw": 10.5,
+    "n": 987
+  },
+  "blend_full": {
+    "cagr": 20.0,
+    "sharpe": 1.58,
+    "sortino": 1.69,
+    "calmar": 1.37,
+    "maxdd": -14.6,
+    "gtp": 1.47,
+    "ulcer": 4.7,
+    "cvar": -1.39,
+    "skew": 0.83,
+    "kurt": 19.58,
+    "kratio": 142.7,
+    "muw": 10.5,
+    "n": 1974
+  }
+}

@@ -31,6 +31,15 @@
     </table>
   </div>
   <div class="card note" id="levnote"></div>
+
+  <h2><span class="n">01b</span> OOS full panel <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— real walk-forward curves, native frequency (backtest/panel_dump.py)</span></h2>
+  <div class="card flush" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Bot</th><th>Sharpe</th><th>Sortino</th><th>Calmar</th><th>Max DD</th><th>Gain/Pain</th><th>Ulcer</th><th>CVaR</th><th>Skew</th><th>Kurt</th><th>K-ratio</th><th>Mo u/w</th></tr></thead>
+      <tbody id="panelbody"><tr><td colspan="12" class="mut">loading real panel…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="card note" id="panelnote"></div>
   <div class="card note">★ Blend base = .55/.25/.20, OOS Sharpe <b>1.28</b> / DD −9.8% (book_final.py, reproduced). ⚠️ Brain research claims a <b>portfolio bear-scaling</b> overlay (book ×0.3 when BTC&lt;200d-MA) lifts this to OOS ~1.57 / DD −7.2% / CAGR ~17.5% — but the audit could NOT locate a runnable script reproducing 1.57, so the verified <b>1.28</b> is shown and the scaling claim stays <b>UNVERIFIED until re-run</b>. The .55/.25/.20 weights were OOS-selected (mild post-selection) → "good," not "proven-optimal."</div>
 
   <h2><span class="n">02</span> The gauntlet <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— every bot must pass</span></h2>
@@ -74,7 +83,7 @@
 <script>
 const BOTS=[
  {n:"★ Crypto blend (base)",d:".55 trend / .25 flush / .20 crashreb · 4H · book_final.py · fees+slip ✓ / funding ✗",sh:1.28,cagr:20,dd:-9.8,badge:["deploy","Deploy · paper"]},
- {n:"Trend core",d:"Donchian 55/20 + MA200 + BTC-regime · long-only · ~20-coin · 4H · walkforward.py",sh:0.86,cagr:17,dd:-23,badge:["deploy","Deploy · core"]},
+ {n:"Trend core",d:"Donchian 55/20 + MA200 + BTC-regime · long-only · ~20-coin · 4H · walkforward.py (re-ran 2026-06-11)",sh:0.75,cagr:14,dd:-24,badge:["deploy","Deploy · core"]},
  {n:"40/40/20 blend",d:"crypto-trend / gold / bonds · all-Binance · diversified (lower beta)",sh:1.11,cagr:16.8,dd:-21.8,badge:["deploy","Deploy · diversified"]},
 ];
 let LV=1;
@@ -99,6 +108,20 @@ function renderLab(){
 }
 document.querySelectorAll("#levtabs .tab").forEach(t=>t.onclick=()=>{LV=+t.dataset.l;document.querySelectorAll("#levtabs .tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");renderLab();});
 renderLab();
+
+// --- OOS full panel (real, from backtest/panel_dump.py → lab_panel.json) ---
+fetch('./lab_panel.json?ts='+Date.now()).then(r=>r.json()).then(P=>{
+  const num=(v,s="")=>v==null?'<span class="mut">—</span>':v+s;
+  const row=(name,k)=>`<tr><td><b>${name}</b></td><td class="num">${num(k.sharpe)}</td><td class="num">${num(k.sortino)}</td>
+    <td class="num ${k.calmar>=1?'up':''}">${num(k.calmar)}</td><td class="num dn">${num(k.maxdd,'%')}</td><td class="num">${num(k.gtp)}</td>
+    <td class="num">${num(k.ulcer,'%')}</td><td class="num">${num(k.cvar,'%')}</td>
+    <td class="num ${k.skew<0?'dn':'up'}">${num(k.skew)}</td><td class="num ${k.kurt>10?'warn':''}">${num(k.kurt)}</td>
+    <td class="num">${num(k.kratio)}</td><td class="num">${num(k.muw,'mo')}</td></tr>`;
+  document.getElementById('panelbody').innerHTML = row('Trend core (walk-forward OOS, 4H)',P.trend) + row('Crypto blend .55/.25/.20 (full, daily)',P.blend_full);
+  document.getElementById('panelnote').innerHTML =
+   'Computed from the REAL OOS return streams (no fabrication). <b>Trend core</b>: stitched walk-forward re-ran to <b>Sharpe 0.75</b> on current data (below the old 0.86 headline) — and note its <b class="dn">negative skew −0.67 + fat tails (kurt 28)</b> = crash-exposed, which is exactly WHY it isn\'t run alone. '+
+   '<b>Blend</b>: flush+crashreb flip <b class="up">skew positive (+0.83)</b> = it profits from crashes (opposite of trend). Blend OOS Sharpe is window-sensitive — <b>1.28</b> (book_final\'s conservative weight-search OOS) → <b>1.58</b> full-sample (shown) → <b>1.7</b> recent holdout; trust the conservative end. Trade-level PF/expectancy/t-stat still need the trade log (not the curve).';
+}).catch(e=>{document.getElementById('panelbody').innerHTML='<tr><td colspan="12" class="mut">panel data not found — run backtest/panel_dump.py</td></tr>';});
 </script>
 <script type="module" src="./anim.js"></script>
 </body>
