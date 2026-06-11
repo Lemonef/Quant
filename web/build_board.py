@@ -136,9 +136,11 @@ HTML = r"""<!doctype html>
  #t th{font-family:var(--mono);color:var(--mut);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer} #t td.l,#t th.l{text-align:left}
  #t td{font-family:var(--mono)}
  tr.row{cursor:pointer} tr.row:hover td{background:rgba(124,196,255,.04)}
- tr.grouphl td{background:rgba(124,196,255,.08)}                                  /* hover → whole strategy group (1x/2x/3x) lights up */
- tr.sel td{background:rgba(124,196,255,.15)}                                      /* the OPEN strategy */
- tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--accent);font-weight:700}
+ tr.grouphl td{background:rgba(124,196,255,.07)}                                  /* hover → whole strategy group lights up */
+ tr.selgroup td{background:rgba(124,196,255,.07)}                                 /* same strategy, other leverage rows */
+ tr.selgroup td:first-child{box-shadow:inset 3px 0 0 rgba(124,196,255,.5)}
+ tr.selopen td{background:rgba(232,161,75,.16)}                                   /* the EXACT open row (its chart is shown) — amber */
+ tr.selopen td:first-child{box-shadow:inset 3px 0 0 var(--amber);color:var(--amber)}
  .pos{color:var(--up)} .neg{color:var(--dn)}
  .tag{font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px}
  .deploy{background:rgba(39,211,138,.13);color:var(--up);border:1px solid rgba(39,211,138,.3)}
@@ -234,7 +236,7 @@ HTML = r"""<!doctype html>
  <footer>Full/Recent = curve-derived (in-sample). OOS = real walk-forward (trustworthy). Backtests, not live · gross of funding · plan real DD ≈ 2× · not financial advice · Lemonef/Trade</footer>
 </div>
 <script>
- const DATA=__DATA__; let L="1x", P="recent", key="cagr", dir=-1, sel=DATA[0];
+ const DATA=__DATA__; let L="1x", P="recent", key="cagr", dir=-1, sel=DATA[0], selLev="1x";
  const f=(v,s="")=>{if(v===null||v===undefined||Number.isNaN(v))return `<span style="color:var(--dim)">—</span>`;const c=v>0?"pos":(v<0?"neg":"");return `<span class="${c}">${v}${s}</span>`};
  const fp=(v,s="")=>(v===null||v===undefined||Number.isNaN(v))?`<span style="color:var(--dim)">—</span>`:v+s;  // plain, no sign-color
  function projLev(p,lev){const n=lev==='all'?1:(parseInt(lev)||1);if(n<=1)return p;
@@ -315,12 +317,14 @@ HTML = r"""<!doctype html>
      +`<td>${d(k.tstat==null?na:(Math.abs(k.tstat)>=2?f(k.tstat):'<span style="color:var(--warn)" title="not statistically significant (|t|<2)">'+k.tstat+'</span>'))}</td><td>${d(k.pf!=null?f(k.pf):na)}</td><td>${d((k.wr!=null||k.win!=null)?((k.wr!=null?k.wr:k.win)+'%'):na)}</td>`
      +`<td>${d(f(k.gtp))}</td><td>${d(fp(k.ulcer,'%'))}</td><td>${d(f(k.cvar,'%'))}</td><td style="color:${k.skew<0?'var(--dn)':'var(--up)'}">${d(fp(k.skew))}</td><td>${d(fp(k.kurt))}</td><td>${d(k.muw!=null?k.muw+'mo':'—')}</td>`; };
   tb.innerHTML="";
-  rows.forEach(r=>{const tr=document.createElement("tr");const isSel=sel===r.s;tr.className="row"+(isSel?" sel":"");
+  rows.forEach(r=>{const tr=document.createElement("tr");const isOpen=sel===r.s&&selLev===r.lv,inGroup=sel===r.s;
+   tr.className="row"+(isOpen?" selopen":(inGroup?" selgroup":""));
    tr.dataset.strat=DATA.indexOf(r.s);
-   tr.innerHTML=`<td class="l">${isSel?'▸ ':''}${r.label}</td>`+cells(r.k)+`<td class="l"><span class="tag ${r.category}">${({deploy:'paper',benchmark:'bench',diversifier:'divers'})[r.category]||r.category}</span></td>`;
+   tr.innerHTML=`<td class="l">${isOpen?'▸ ':''}${r.label}</td>`+cells(r.k)+`<td class="l"><span class="tag ${r.category}">${({deploy:'paper',benchmark:'bench',diversifier:'divers'})[r.category]||r.category}</span></td>`;
    tr.onmouseenter=()=>document.querySelectorAll('#t tbody tr[data-strat="'+tr.dataset.strat+'"]').forEach(x=>x.classList.add('grouphl'));
    tr.onmouseleave=()=>document.querySelectorAll('#t tbody tr.grouphl').forEach(x=>x.classList.remove('grouphl'));
-   tr.onclick=()=>{sel=r.s; draw(r.s,r.lv); render();};tb.appendChild(tr);});
+   tr.onclick=()=>{sel=r.s; selLev=r.lv; draw(r.s,r.lv); render();};tb.appendChild(tr);});
+  const sh=document.querySelector('#t th[data-k="'+key+'"]'); if(sh) sh.insertAdjacentHTML('beforeend', dir<0?' ↓':' ↑');
   document.querySelectorAll("#t th").forEach(t=>{if(t.dataset.k)t.onclick=()=>{const kk=t.dataset.k;dir=(kk===key)?-dir:-1;key=kk;render();};});
   document.getElementById("warn").textContent = P==='oos'
     ? "OOS: trend = genuine walk-forward; blend = quasi-OOS (weights fit on-sample). PF/Win/$ = fixed-config illustrative. 2×/3× = projection (vol-drag, real DD≈2×, ⛔=wipeout)."
