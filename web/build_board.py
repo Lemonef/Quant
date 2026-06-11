@@ -170,13 +170,13 @@ HTML = r"""<!doctype html>
 <div class="wrap">
  <p class="eyebrow">Backtests · Full vs Recent</p>
  <h1>Backtest <span class="thin">Board</span></h1>
- <p class="lede">Toggle <b>period</b> + <b>leverage</b>. <b style="color:var(--up)">OOS</b> = real walk-forward (train→test) = the trustworthy one. <b style="color:var(--up)">Recent (2022→now)</b> strips the 2018–21 mega-bull (current-regime, still in-sample). <b style="color:var(--warn)">Full (2018–26)</b> = bull-inflated gross ceiling. <b>One wide table, the full metric panel</b> (Sharpe·Sortino·Calmar·t-stat·PF·skew·Ulcer·K-ratio…). Click any row for its chart + heatmap.</p>
+ <p class="lede">Toggle <b>period</b> + <b>leverage</b>. <b style="color:var(--up)">OOS</b> = walk-forward — but only the <b>trend core</b> is genuinely walk-forward (the rest are the post-2022 holdout = Recent). <b style="color:var(--up)">Recent (2022→now)</b> strips the 2018–21 mega-bull (current-regime, still in-sample). <b style="color:var(--warn)">Full (2018–26)</b> = bull-inflated gross ceiling. <b>"deploy" = passed the gauntlet, NOT live yet</b> (paper stage). <b>One wide table, full metric panel.</b> Click any row for its chart + heatmap.</p>
  <div id="nav"></div>
  <script src="./nav.js"></script>
  <div class="banner live" id="periodbanner"></div>
 
  <div class="toggles">
-  <div class="seg" id="per"><span class="lbl">Period</span><button data-p="recent" class="on honest">Recent · 2022→ (honest)</button><button data-p="full">Full · 2018–26 (gross)</button><button data-p="oos">OOS · walk-forward (trustworthy)</button></div>
+  <div class="seg" id="per"><span class="lbl">Period</span><button data-p="recent" class="on honest">Recent · 2022→ (honest)</button><button data-p="full">Full · 2018–26 (gross)</button><button data-p="oos">OOS · walk-forward (1 genuine)</button></div>
   <div class="seg" id="lev"><span class="lbl">Leverage</span><button data-l="1x" class="on">1×</button><button data-l="2x">2×</button><button data-l="3x">3×</button><button data-l="all">ALL ⊞</button></div>
  </div>
  <div class="cols">
@@ -291,13 +291,13 @@ HTML = r"""<!doctype html>
     ? "✅ <b>OOS</b> — only <b>Trend core</b> is GENUINE walk-forward (tagged <b>WF✓</b>). <b>Blend = quasi-OOS</b> (weights fit on-sample). Rows tagged <b>holdout</b> = buy-holds / fixed-weight blends with no params to walk-forward → their out-of-sample is just the post-2022 slice (= Recent). Trend PF/Win/$ = fixed config (illustrative). 2×/3× = projection (vol-drag); real DD ≈ 2×, ⛔ = wipeout."
     : P==="recent"
     ? "✅ <b>Recent (2022→now)</b> — 2018–21 explosion removed; current-regime proxy, but STILL in-sample + gross. Real forward truth = the live bot on the <b>Strategy Book</b>."
-    : "⚠ <b>Full (2018–26)</b> — includes the 2020–21 mega-bull. Optimistic CEILING; not for forward expectation. Flip to <b>OOS</b> for the trustworthy one.";
+    : "⚠ <b>Full (2018–26)</b> — includes the 2020–21 mega-bull. Optimistic CEILING; not for forward expectation. Flip to <b>OOS</b> for the walk-forward view (only the trend core is genuine).";
   const th=document.getElementById("th"),tb=document.querySelector("#t tbody");
   const hl=(L==='2x'||L==='3x')?' style="color:var(--accent);text-shadow:0 0 6px rgba(124,196,255,.4)"':'';   // mark the cols leverage actually moves
   th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr"${hl}>CAGR%${hl?' ▲':''}</th><th data-k="sharpe">Sharpe</th><th data-k="sortino">Sortino</th><th data-k="calmar"${hl}>Calmar${hl?' ▲':''}</th><th data-k="maxdd"${hl}>MaxDD%${hl?' ▲':''}</th><th data-k="tstat">t-stat</th><th data-k="pf">PF</th><th data-k="win">Win%</th><th data-k="gtp">Gain/Pain</th><th data-k="ulcer">Ulcer</th><th data-k="cvar">CVaR</th><th data-k="skew">Skew</th><th data-k="kurt">Kurt</th><th data-k="muw">Mo u/w</th><th class="l" data-k="category">Type</th></tr>`;
   let rows=[];
   if(P==='oos'){
-    DATA.filter(s=>s.oos).forEach(s=>{(L==='all'?['1x','2x','3x']:[L]).forEach(lv=>{const k=cell(s,lv);if(!k)return;const tag=k._holdout?'  · holdout':(s.name.includes('quasi')?'':'  · WF✓');rows.push({label:s.name+(L==='all'?' ('+lv+')':'')+tag,k,category:s.category,s,lv});});});
+    DATA.filter(s=>s.oos).forEach(s=>{(L==='all'?['1x','2x','3x']:[L]).forEach(lv=>{if(s.category==='research'&&lv!=='1x')return;const k=cell(s,lv);if(!k)return;const tag=k._holdout?'  · holdout':(s.name.includes('quasi')?'':'  · WF✓');rows.push({label:s.name+(L==='all'?' ('+lv+')':'')+tag,k,category:s.category,s,lv});});});
   } else if(L==="all"){
     DATA.forEach(s=>{ if(!s.levels||!Object.keys(s.levels).length)return; (s.category==="research"?["1x"]:["1x","2x","3x"]).forEach(lv=>{const k=cell(s,lv);if(k)rows.push({label:s.name+" ("+lv+")",k,category:s.category,s,lv});});});
   } else {
@@ -309,18 +309,18 @@ HTML = r"""<!doctype html>
   const cells=k=>{ if(!k) return '<td colspan="14" class="mut">— no data this period</td>';
     const d=h=>k._proj?`<span style="opacity:.5">${h}</span>`:h;   // dim metrics leverage doesn't change (readable but secondary)
     return `<td>${f(k.cagr,'%')}</td><td>${d(f(k.sharpe))}</td><td>${d(f(k.sortino))}</td><td>${f(k.calmar)}</td><td class="neg">${f(k.maxdd,'%')}${k.ruin?' ⛔':''}</td>`
-     +`<td>${d(f(k.tstat))}</td><td>${d(k.pf!=null?f(k.pf):na)}</td><td>${d((k.wr!=null||k.win!=null)?((k.wr!=null?k.wr:k.win)+'%'):na)}</td>`
+     +`<td>${d(k.tstat==null?na:(Math.abs(k.tstat)>=2?f(k.tstat):'<span style="color:var(--warn)" title="not statistically significant (|t|<2)">'+k.tstat+'</span>'))}</td><td>${d(k.pf!=null?f(k.pf):na)}</td><td>${d((k.wr!=null||k.win!=null)?((k.wr!=null?k.wr:k.win)+'%'):na)}</td>`
      +`<td>${d(f(k.gtp))}</td><td>${d(fp(k.ulcer,'%'))}</td><td>${d(f(k.cvar,'%'))}</td><td style="color:${k.skew<0?'var(--dn)':'var(--up)'}">${d(fp(k.skew))}</td><td>${d(fp(k.kurt))}</td><td>${d(k.muw!=null?k.muw+'mo':'—')}</td>`; };
   tb.innerHTML="";
   rows.forEach(r=>{const tr=document.createElement("tr");tr.className="row"+(sel===r.s?" sel":"");
-   tr.innerHTML=`<td class="l">${r.label}</td>`+cells(r.k)+`<td class="l"><span class="tag ${r.category}">${r.category}</span></td>`;
+   tr.innerHTML=`<td class="l">${r.label}</td>`+cells(r.k)+`<td class="l"><span class="tag ${r.category}">${({deploy:'paper',benchmark:'bench',diversifier:'divers'})[r.category]||r.category}</span></td>`;
    tr.onclick=()=>{sel=r.s; draw(r.s,r.lv); render();};tb.appendChild(tr);});
   document.querySelectorAll("#t th").forEach(t=>{if(t.dataset.k)t.onclick=()=>{const kk=t.dataset.k;dir=(kk===key)?-dir:-1;key=kk;render();};});
   document.getElementById("warn").textContent = P==='oos'
     ? "OOS: trend = genuine walk-forward; blend = quasi-OOS (weights fit on-sample). PF/Win/$ = fixed-config illustrative. 2×/3× = projection (vol-drag, real DD≈2×, ⛔=wipeout)."
     : "⚠ Full/Recent skew/kurt/CVaR are COARSE-sampled (~24d curve) — not comparable to OOS native-frequency. "
       + ((L==="all") ? "ALL = one row per strategy×leverage; 2×/3× include ~10% financing + vol-drag."
-         : (L!=="1x" ? L+" includes ~10% financing + vol-drag; real DD≈2×, >2× risks liquidation. Dimmed cols = unchanged by leverage (only CAGR/MaxDD/Calmar move)." : ""));
+         : (L!=="1x" ? L+" includes ~10% financing + vol-drag; real DD≈2×, >2× risks liquidation. Dimmed cols = unchanged by leverage (only CAGR/MaxDD/Calmar move). ⚠ Sharpe shown FLAT — real levered Sharpe is LOWER (financing + liquidation gaps); leverage is not free." : ""));
  }
  document.querySelectorAll("#per button").forEach(b=>b.onclick=()=>{P=b.dataset.p;document.querySelectorAll("#per button").forEach(x=>{x.classList.remove("on");x.classList.toggle("honest",x.dataset.p==="recent"||x.dataset.p==="oos");});b.classList.add("on");render();draw(sel);});
  document.querySelectorAll("#lev button").forEach(b=>b.onclick=()=>{L=b.dataset.l;document.querySelectorAll("#lev button").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();draw(sel);});
