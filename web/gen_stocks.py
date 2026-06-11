@@ -1,38 +1,92 @@
 """
-gen_stocks.py — build web/stocks.html: a BIG per-stock paper-trade dashboard
-(price history chart + entry/exit markers + P&L + trade log). Mirrors the
-spike-hunter tracker in the second brain (memory/paper-trades.md).
+gen_stocks.py — build web/stocks.html from the LIVE ledger (brain memory/paper-trades.md).
 
-Data embedded inline so it works on GitHub Pages with no fetch/CORS.
-Re-run to refresh: python web/gen_stocks.py
+Parses ALL open positions (PAPER OWN + REAL OWN) straight from paper-trades.md so the page
+NEVER goes stale or shows only one name — re-run it and it reflects the current book exactly.
+Prices via yfinance (accurate close, not the routine's intraday bad-ticks).
 
     python web/gen_stocks.py   ->  web/stocks.html
+
+Brain path resolution order: $SECOND_BRAIN env -> D:/second-brain -> ../second-brain -> ./second-brain
+(so it works locally AND in a CI job that clones the brain alongside this repo).
 """
-import json
+import json, os, re
+from pathlib import Path
 import yfinance as yf
 
-# Open + closed paper positions (mirror of brain memory/paper-trades.md).
-HOLDINGS = [
-    dict(ticker="LEU", name="Centrus Energy", entry_date="2026-06-08", entry=166.30,
-         flavor="franchise / re-rating", target=None, stop=None, status="OPEN",
-         exit_date=None, exit=None,
-         note="Only US-owned HALEU enricher (Russia ban + DOE >$3.4B + post-2030 SMR). "
-              "Entered mid −16%/wk selloff; our deepdive = cautious-bearish on valuation. Paper-tracking which call wins."),
-]
+
+def find_brain():
+    cands = [os.environ.get("SECOND_BRAIN"), r"D:/second-brain", "../second-brain", "./second-brain"]
+    for c in cands:
+        if c and (Path(c) / "memory" / "paper-trades.md").exists():
+            return Path(c)
+    return None
+
+
+def first_price(cell):
+    """Extract the entry price from a messy Entry$ cell. Prefer 'avg ~$X' if present."""
+    m = re.search(r"avg\s*~?\$?\s*([0-9]+(?:\.[0-9]+)?)", cell, re.I)
+    if m:
+        return float(m.group(1))
+    m = re.search(r"([0-9]+(?:\.[0-9]+)?)", cell)
+    return float(m.group(1)) if m else None
+
+
+def parse_positions(brain):
+    """Parse PAPER OWN + REAL OWN table rows from paper-trades.md."""
+    text = (brain / "memory" / "paper-trades.md").read_text(encoding="utf-8")
+    rows = []
+    section = None
+    for line in text.splitlines():
+        if "PAPER OWN" in line and line.startswith("##"):
+            section = "PAPER"; continue
+        if "REAL OWN" in line and line.startswith("##"):
+            section = "REAL"; continue
+        if line.startswith("##"):
+            section = None; continue
+        if section and line.strip().startswith("|"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) < 10:
+                continue
+            tk = cells[0]
+            if tk in ("Ticker", "") or tk.startswith("-") or tk.startswith("_") or "none yet" in tk.lower():
+                continue
+            entry = first_price(cells[2])
+            if entry is None:
+                continue
+            rows.append(dict(
+                ticker=re.sub(r"[^A-Z]", "", tk.upper())[:6],
+                name=tk,
+                entry_date=cells[1][:10],
+                entry=entry,
+                flavor=cells[3][:60],
+                status="OPEN" if "OPEN" in cells[9].upper() else cells[9][:18],
+                target=None, stop=None, exit=None, exit_date=None,
+                book=section,
+                note=re.sub(r"\s+", " ", cells[4])[:240],
+            ))
+    return rows
 
 
 def hist(tkr, days=400):
-    h = yf.Ticker(tkr).history(period=f"{days}d")["Close"]
-    return [[str(i.date()), round(float(v), 2)] for i, v in h.items()]
+    try:
+        h = yf.Ticker(tkr).history(period=f"{days}d")["Close"]
+        return [[str(i.date()), round(float(v), 2)] for i, v in h.items()]
+    except Exception:
+        return []
 
 
 def main():
+    brain = find_brain()
+    if not brain:
+        raise SystemExit("paper-trades.md not found — set $SECOND_BRAIN or place brain at D:/second-brain")
+    positions = parse_positions(brain)
     out = []
-    for h in HOLDINGS:
+    for h in positions:
         series = hist(h["ticker"])
         cur = series[-1][1] if series else h["entry"]
         ref = h["exit"] if h["exit"] else cur
-        pnl = round((ref - h["entry"]) / h["entry"] * 100, 1)
+        pnl = round((ref - h["entry"]) / h["entry"] * 100, 1) if h["entry"] else 0.0
         out.append({**h, "current": cur, "pnl": pnl, "series": series})
     DATA = json.dumps(out)
 
@@ -61,8 +115,8 @@ def main():
  .closed{background:#2a2030;color:#c084fc}
 </style></head><body>
 <h1>Spike Hunter — Stock Paper Trades</h1>
-<div class="sub">Live paper track of the stock-analysis (spike-hunter) framework. Real price history · entry/exit markers · P&L. Updated by the daily routine + on demand.</div>
-<div class="nav"><a href="./index.html">← back to QuantBot (crypto)</a></div>
+<div class="sub">Live paper track of the stock-analysis (spike-hunter) framework, built straight from the brain ledger (paper-trades.md). Real price history · entry markers · P&L. Re-run gen_stocks.py to refresh.</div>
+<div class="nav"><a href="./index.html">← QuantBot (crypto)</a> · <a href="./strategy_lab.html">🧪 Strategy Lab</a></div>
 <div class="wrap">
  <div class="list" id="list"></div>
  <div class="main"><div class="card">
@@ -89,7 +143,6 @@ def main():
   document.getElementById("kp").innerHTML=f(h.pnl,"%");
   document.getElementById("ks").innerHTML='<span class="tag '+(h.status=="OPEN"?'':'closed')+'">'+h.status+'</span>';
   document.getElementById("kf").textContent=h.flavor;
-  // chart
   const cv=document.getElementById("cv"),x=cv.getContext("2d"),W=cv.width,H=cv.height,P=52;
   x.clearRect(0,0,W,H); const s=h.series,n=s.length; if(!n)return;
   const pts=s.map(p=>p[1]),mn=Math.min(...pts,h.entry),mx=Math.max(...pts,h.entry),rng=(mx-mn)||1;
@@ -97,31 +150,25 @@ def main():
   x.strokeStyle="#1c2230";x.fillStyle="#6b7585";x.font="12px system-ui";
   for(let g=0;g<=4;g++){const v=mn+rng*g/4,yy=Y(v);x.beginPath();x.moveTo(P,yy);x.lineTo(W-P,yy);x.stroke();x.fillText("$"+Math.round(v),6,yy+4);}
   x.fillText(s[0][0],P,H-16);x.textAlign="right";x.fillText(s[n-1][0],W-P,H-16);x.textAlign="left";
-  // entry line
   x.strokeStyle="#fbbf24";x.setLineDash([5,4]);x.beginPath();x.moveTo(P,Y(h.entry));x.lineTo(W-P,Y(h.entry));x.stroke();x.setLineDash([]);
   x.fillStyle="#fbbf24";x.fillText("entry $"+h.entry,P+6,Y(h.entry)-6);
-  // price line
   x.strokeStyle=h.pnl>=0?"#4ade80":"#f87171";x.lineWidth=2;x.beginPath();
   pts.forEach((v,i)=>{i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v))});x.stroke();
-  // entry marker (nearest date)
   let ei=s.findIndex(p=>p[0]>=h.entry_date); if(ei<0)ei=n-1;
   x.fillStyle="#fbbf24";x.beginPath();x.arc(X(ei),Y(h.entry),6,0,7);x.fill();
-  if(h.exit){let xi=s.findIndex(p=>p[0]>=h.exit_date);if(xi<0)xi=n-1;x.fillStyle="#c084fc";x.beginPath();x.arc(X(xi),Y(h.exit),6,0,7);x.fill();}
-  // log
   const tb=document.querySelector("#log tbody");
   let rows=`<tr><td>${h.entry_date}</td><td>BUY</td><td>$${h.entry}</td><td>${h.flavor}</td></tr>`;
-  if(h.exit)rows+=`<tr><td>${h.exit_date}</td><td>SELL</td><td>$${h.exit}</td><td>closed</td></tr>`;
   rows+=`<tr><td>${s[n-1][0]}</td><td>mark</td><td>$${h.current}</td><td>${f(h.pnl,"% unrealized")}</td></tr>`;
   tb.innerHTML=rows;
  }
  function list(){const L=document.getElementById("list");L.innerHTML="";
   DATA.forEach(h=>{const d=document.createElement("div");d.className="item"+(sel===h?" sel":"");
-   d.innerHTML=`<div class="t">${h.ticker} ${h.pnl>=0?'<span class="pos">+'+h.pnl+'%</span>':'<span class="neg">'+h.pnl+'%</span>'}</div><div class="p">${h.name} · ${h.status}</div>`;
+   d.innerHTML=`<div class="t">${h.ticker} ${h.pnl>=0?'<span class="pos">+'+h.pnl+'%</span>':'<span class="neg">'+h.pnl+'%</span>'}</div><div class="p">${h.name.replace(/\|/g,' ').slice(0,40)} · ${h.status} · ${h.book}</div>`;
    d.onclick=()=>{sel=h;list();draw(h)};L.appendChild(d);});}
  list();draw(sel);
 </script></body></html>"""
-    open("web/stocks.html", "w", encoding="utf-8").write(html.replace("__DATA__", DATA))
-    print(f"wrote web/stocks.html ({len(out)} holdings)")
+    Path("web/stocks.html").write_text(html.replace("__DATA__", DATA), encoding="utf-8")
+    print(f"wrote web/stocks.html ({len(out)} positions: {', '.join(p['ticker'] for p in out)})")
 
 
 if __name__ == "__main__":
