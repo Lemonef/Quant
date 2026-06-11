@@ -28,10 +28,10 @@ def panel(pr, ppy):
     yrs = n / ppy
     end = float(eq.iloc[-1])
     cagr = (end ** (1 / yrs) - 1) * 100 if end > 0 else -100.0
-    mu, sd = pr.mean(), pr.std()
+    mu = pr.mean(); sd = pr.std(ddof=0)                      # population std (matches build_board)
     sharpe = mu / sd * math.sqrt(ppy) if sd > 0 else 0.0
-    dn = pr[pr < 0].std()
-    sortino = mu / dn * math.sqrt(ppy) if dn and dn > 0 else None
+    dsd = float(((pr.clip(upper=0) ** 2).mean())) ** 0.5     # downside dev over ALL obs (matches build_board Sortino)
+    sortino = mu / dsd * math.sqrt(ppy) if dsd > 0 else None
     dd_ser = (eq / eq.cummax() - 1)
     maxdd = dd_ser.min() * 100
     calmar = cagr / abs(maxdd) if maxdd else None

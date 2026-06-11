@@ -97,10 +97,13 @@ for s in strats:
     k = OOS_MAP.get(s["name"])
     if k and k in lab:
         s["oos"] = lab[k]
-# the .55/.25/.20 book isn't in board_data → add it as an OOS-only row
-if "blend_full" in lab:
-    strats.append({"name": "Crypto blend .55/.25/.20 ★", "category": "deploy",
-                   "note": "trend+flush+crashreb book (book_final.py) — OOS only", "levels": {}, "oos": lab["blend_full"]})
+# the .55/.25/.20 book isn't in board_data → add it as an OOS-only row.
+# Use the HOLDOUT ("blend"), not blend_full. ⚠ even this is quasi-OOS: the weights were
+# fit on this window (book_final.py weight-search), so it's optimistic, NOT true walk-forward.
+if "blend" in lab:
+    strats.append({"name": "Crypto blend .55/.25/.20 (quasi-OOS ⚠)", "category": "deploy",
+                   "note": "book_final.py · 2nd-half holdout, BUT weights were fit on this window → quasi-OOS / optimistic, NOT genuine walk-forward (only the trend core is true WF)",
+                   "levels": {}, "oos": lab["blend"]})
 DATA = json.dumps(strats)
 
 HTML = r"""<!doctype html>
@@ -220,8 +223,12 @@ HTML = r"""<!doctype html>
  const f=(v,s="")=>{if(v===null||v===undefined||Number.isNaN(v))return `<span style="color:var(--dim)">—</span>`;const c=v>0?"pos":(v<0?"neg":"");return `<span class="${c}">${v}${s}</span>`};
  const fp=(v,s="")=>(v===null||v===undefined||Number.isNaN(v))?`<span style="color:var(--dim)">—</span>`:v+s;  // plain, no sign-color
  function projLev(p,lev){const n=lev==='all'?1:(parseInt(lev)||1);if(n<=1)return p;
-   const cagr=Math.round((n*p.cagr-(n-1)*10)*10)/10, maxdd=Math.round(p.maxdd*n*10)/10;
-   return Object.assign({},p,{cagr,maxdd,calmar:maxdd?Math.round(cagr/Math.abs(maxdd)*100)/100:null,_proj:true});}
+   const sig=p.sharpe?Math.abs(p.cagr/p.sharpe)/100:0.25;      // annual vol (decimal) ≈ CAGR/Sharpe
+   const drag=((n*n-n)/2)*sig*sig*100;                          // leverage VOLATILITY DRAG (%)
+   const cagr=Math.round((n*p.cagr-(n-1)*10-drag)*10)/10;       // N×ret − financing − vol drag
+   const maxdd=Math.round(p.maxdd*n*10)/10;
+   const liq=(maxdd*2)<=-100;                                   // real DD≈2× → wipeout
+   return Object.assign({},p,{cagr,maxdd,calmar:maxdd?Math.round(cagr/Math.abs(maxdd)*100)/100:null,_proj:true,ruin:liq});}
  function cell(s,lev){ if(P==='oos'){ return s.oos?projLev(s.oos,lev):null; } const lv=s.levels[lev]; return lv?lv[P]:null; }
  function monthlyGrid(series){
   if(!series||series.length<3) return '';
@@ -269,12 +276,12 @@ HTML = r"""<!doctype html>
  }
  function render(){
   document.getElementById("periodbanner").innerHTML = P==="oos"
-    ? "✅ <b>OOS · walk-forward</b> — train-past→test-future = THE trustworthy panel. Only the validated bots (trend core + .55/.25/.20 blend). PF/Win/$ shown where the bot places discrete trades. 2×/3× = projected (Sharpe flat, CAGR×N−fin, DD×N)."
+    ? "✅ <b>OOS</b> — ⚠ only the <b>Trend core</b> is GENUINE walk-forward (train→test). The <b>blend is quasi-OOS</b> — its weights were fit on this window (optimistic, NOT true walk-forward). Trend PF/Win/$ = a fixed config (illustrative, not the WF picks). 2×/3× = projection (incl vol-drag); real DD ≈ 2× shown, ⛔ = wipeout."
     : P==="recent"
     ? "✅ <b>Recent (2022→now)</b> — 2018–21 explosion removed; current-regime proxy, but STILL in-sample + gross. Real forward truth = the live bot on the <b>Strategy Book</b>."
     : "⚠ <b>Full (2018–26)</b> — includes the 2020–21 mega-bull. Optimistic CEILING; not for forward expectation. Flip to <b>OOS</b> for the trustworthy one.";
   const th=document.getElementById("th"),tb=document.querySelector("#t tbody");
-  th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr">CAGR%</th><th data-k="sharpe">Sharpe</th><th data-k="sortino">Sortino</th><th data-k="calmar">Calmar</th><th data-k="maxdd">MaxDD%</th><th data-k="tstat">t-stat</th><th data-k="pf">PF</th><th data-k="win">Win%</th><th data-k="gtp">Gain/Pain</th><th data-k="ulcer">Ulcer</th><th data-k="cvar">CVaR</th><th data-k="skew">Skew</th><th data-k="kurt">Kurt</th><th data-k="kratio">K-rat</th><th data-k="muw">Mo u/w</th><th class="l" data-k="category">Type</th></tr>`;
+  th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr">CAGR%</th><th data-k="sharpe">Sharpe</th><th data-k="sortino">Sortino</th><th data-k="calmar">Calmar</th><th data-k="maxdd">MaxDD%</th><th data-k="tstat">t-stat</th><th data-k="pf">PF</th><th data-k="win">Win%</th><th data-k="gtp">Gain/Pain</th><th data-k="ulcer">Ulcer</th><th data-k="cvar">CVaR</th><th data-k="skew">Skew</th><th data-k="kurt">Kurt</th><th data-k="muw">Mo u/w</th><th class="l" data-k="category">Type</th></tr>`;
   let rows=[];
   if(P==='oos'){
     DATA.filter(s=>s.oos).forEach(s=>{const lv=(L==='all'?'1x':L);const k=cell(s,lv);if(k)rows.push({label:s.name,k,category:s.category,s,lv});});
@@ -286,18 +293,20 @@ HTML = r"""<!doctype html>
   const kv=r=> key==="name"?r.label : key==="category"?r.category : (r.k?r.k[key]:null);
   rows.sort((a,b)=>{let av=kv(a),bv=kv(b); if(typeof av==="string")return (av||"").localeCompare(bv||"")*dir; av=(av==null||Number.isNaN(av))?-Infinity:av; bv=(bv==null||Number.isNaN(bv))?-Infinity:bv; return (av-bv)*dir;});
   const na='<span class="mut">n/a</span>';
-  const cells=k=> !k ? '<td colspan="15" class="mut">— no data this period</td>'
-    : `<td>${f(k.cagr,'%')}</td><td>${f(k.sharpe)}</td><td>${f(k.sortino)}</td><td>${f(k.calmar)}</td><td class="neg">${f(k.maxdd,'%')}</td>`
+  const cells=k=> !k ? '<td colspan="14" class="mut">— no data this period</td>'
+    : `<td>${f(k.cagr,'%')}</td><td>${f(k.sharpe)}</td><td>${f(k.sortino)}</td><td>${f(k.calmar)}</td><td class="neg">${f(k.maxdd,'%')}${k.ruin?' ⛔':''}</td>`
      +`<td>${f(k.tstat)}</td><td>${k.pf!=null?f(k.pf):na}</td><td>${(k.wr!=null||k.win!=null)?((k.wr!=null?k.wr:k.win)+'%'):na}</td>`
-     +`<td>${f(k.gtp)}</td><td>${fp(k.ulcer,'%')}</td><td>${f(k.cvar,'%')}</td><td style="color:${k.skew<0?'var(--dn)':'var(--up)'}">${fp(k.skew)}</td><td>${fp(k.kurt)}</td><td>${f(k.kratio)}</td><td>${k.muw!=null?k.muw+'mo':'—'}</td>`;
+     +`<td>${f(k.gtp)}</td><td>${fp(k.ulcer,'%')}</td><td>${f(k.cvar,'%')}</td><td style="color:${k.skew<0?'var(--dn)':'var(--up)'}">${fp(k.skew)}</td><td>${fp(k.kurt)}</td><td>${k.muw!=null?k.muw+'mo':'—'}</td>`;
   tb.innerHTML="";
   rows.forEach(r=>{const tr=document.createElement("tr");tr.className="row"+(sel===r.s?" sel":"");
    tr.innerHTML=`<td class="l">${r.label}</td>`+cells(r.k)+`<td class="l"><span class="tag ${r.category}">${r.category}</span></td>`;
    tr.onclick=()=>{sel=r.s; draw(r.s,r.lv); render();};tb.appendChild(tr);});
   document.querySelectorAll("#t th").forEach(t=>{if(t.dataset.k)t.onclick=()=>{const kk=t.dataset.k;dir=(kk===key)?-dir:-1;key=kk;render();};});
-  document.getElementById("warn").textContent = P==='oos' ? "OOS = walk-forward (trend) / full-sample book (blend). PF/Win/$ only where discrete trades exist. 2×/3× projected. Skew & K-ratio = consistency/tail shape."
-    : (L==="all") ? "ALL: one row per strategy × leverage. 2×/3× include ~10% financing; DD scales, >2× risks liquidation."
-    : (L!=="1x" ? "⚠ "+L+" includes ~10% financing. Plan ~2× this maxDD; >2× risks liquidation." : "");
+  document.getElementById("warn").textContent = P==='oos'
+    ? "OOS: trend = genuine walk-forward; blend = quasi-OOS (weights fit on-sample). PF/Win/$ = fixed-config illustrative. 2×/3× = projection (vol-drag, real DD≈2×, ⛔=wipeout)."
+    : "⚠ Full/Recent skew/kurt/CVaR are COARSE-sampled (~24d curve) — not comparable to OOS native-frequency. "
+      + ((L==="all") ? "ALL = one row per strategy×leverage; 2×/3× include ~10% financing + vol-drag."
+         : (L!=="1x" ? L+" includes ~10% financing + vol-drag; real DD≈2×, >2× risks liquidation." : ""));
  }
  document.querySelectorAll("#per button").forEach(b=>b.onclick=()=>{P=b.dataset.p;document.querySelectorAll("#per button").forEach(x=>{x.classList.remove("on");x.classList.toggle("honest",x.dataset.p==="recent"||x.dataset.p==="oos");});b.classList.add("on");render();draw(sel);});
  document.querySelectorAll("#lev button").forEach(b=>b.onclick=()=>{L=b.dataset.l;document.querySelectorAll("#lev button").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();draw(sel);});
