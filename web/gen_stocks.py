@@ -118,6 +118,7 @@ def main():
 <div class="nav">
   <a class="home" href="./index.html">◆ Strategy Book</a>
   <a href="./strategy_lab.html">🧪 Strategy Lab</a>
+  <a href="./board.html">📊 Backtest Board</a>
 </div>
 <div class="cols">
  <div class="list" id="list"></div>
