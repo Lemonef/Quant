@@ -297,7 +297,7 @@ HTML = r"""<!doctype html>
   th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr"${hl}>CAGR%${hl?' ▲':''}</th><th data-k="sharpe">Sharpe</th><th data-k="sortino">Sortino</th><th data-k="calmar"${hl}>Calmar${hl?' ▲':''}</th><th data-k="maxdd"${hl}>MaxDD%${hl?' ▲':''}</th><th data-k="tstat">t-stat</th><th data-k="pf">PF</th><th data-k="win">Win%</th><th data-k="gtp">Gain/Pain</th><th data-k="ulcer">Ulcer</th><th data-k="cvar">CVaR</th><th data-k="skew">Skew</th><th data-k="kurt">Kurt</th><th data-k="muw">Mo u/w</th><th class="l" data-k="category">Type</th></tr>`;
   let rows=[];
   if(P==='oos'){
-    DATA.filter(s=>s.oos).forEach(s=>{const lv=(L==='all'?'1x':L);const k=cell(s,lv);if(k)rows.push({label:s.name+(k._holdout?'  · holdout':'  · WF✓'),k,category:s.category,s,lv});});
+    DATA.filter(s=>s.oos).forEach(s=>{(L==='all'?['1x','2x','3x']:[L]).forEach(lv=>{const k=cell(s,lv);if(k)rows.push({label:s.name+(L==='all'?' ('+lv+')':'')+(k._holdout?'  · holdout':'  · WF✓'),k,category:s.category,s,lv});});});
   } else if(L==="all"){
     DATA.forEach(s=>{ if(!s.levels||!Object.keys(s.levels).length)return; (s.category==="research"?["1x"]:["1x","2x","3x"]).forEach(lv=>{const k=cell(s,lv);if(k)rows.push({label:s.name+" ("+lv+")",k,category:s.category,s,lv});});});
   } else {
