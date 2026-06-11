@@ -9,7 +9,7 @@ levels that liquidate (equity <= 0) are capped + flagged.
 
     python web/build_board.py   ->  web/board.html
 """
-import json, datetime as dt
+import json, math, datetime as dt
 
 RECENT_FROM = "2022-01-01"   # strip the 2018-21 mega-bull
 d = json.load(open("web/board_data.json", encoding="utf-8"))
@@ -40,7 +40,35 @@ def metrics(series, win):
     sortino = round(mean / dsd * (ppy ** 0.5), 2) if dsd > 0 else None
     mddpct = round(mdd * 100, 1)
     calmar = round(cagr / abs(mddpct), 2) if mddpct else None
-    return {"cagr": cagr, "sharpe": sharpe, "sortino": sortino, "calmar": calmar, "maxdd": mddpct, "win": win, "series": series}
+    # --- extended panel (all curve-derived; PF/expectancy/t-stat need a trade log, not here) ---
+    gains = sum(r for r in rets if r > 0); pains = -sum(r for r in rets if r < 0)
+    gtp = round(gains / pains, 2) if pains > 0 else None          # gain-to-pain (= Omega@0)
+    pk = eq[0]; dds = []
+    for v in eq:
+        pk = max(pk, v); dds.append((v / pk - 1) * 100)
+    ulcer = round((sum(x * x for x in dds) / len(dds)) ** 0.5, 1)  # depth×duration of pain
+    srt = sorted(rets); k5 = max(1, int(len(srt) * 0.05))
+    cvar = round(sum(srt[:k5]) / k5 * 100, 1)                      # avg worst-5% period return
+    sdp = sd if sd > 0 else 1e-9
+    skew = round(sum(((r - mean) / sdp) ** 3 for r in rets) / len(rets), 2)
+    kurt = round(sum(((r - mean) / sdp) ** 4 for r in rets) / len(rets) - 3, 2)
+    logs = [math.log(v) for v in eq]; nn = len(logs); xs = list(range(nn))
+    xb = sum(xs) / nn; yb = sum(logs) / nn
+    sxx = sum((x - xb) ** 2 for x in xs); sxy = sum((xs[i] - xb) * (logs[i] - yb) for i in range(nn))
+    slope = sxy / sxx if sxx else 0
+    sse = sum((logs[i] - (yb + slope * (xs[i] - xb))) ** 2 for i in range(nn))
+    se = (sse / (nn - 2) / sxx) ** 0.5 if nn > 2 and sxx > 0 and sse > 0 else None
+    kratio = round(slope / se, 2) if se else None                 # equity-curve smoothness
+    pk2 = eq[0]; uws = None; longest = 0
+    for i, v in enumerate(eq):
+        if v >= pk2: pk2 = v; uws = None
+        else:
+            if uws is None: uws = i
+            longest = max(longest, (dt.date.fromisoformat(series[i][0]) - dt.date.fromisoformat(series[uws][0])).days)
+    muw = round(longest / 30.4, 1)                                # longest months underwater
+    return {"cagr": cagr, "sharpe": sharpe, "sortino": sortino, "calmar": calmar, "maxdd": mddpct,
+            "gtp": gtp, "ulcer": ulcer, "cvar": cvar, "skew": skew, "kurt": kurt, "kratio": kratio, "muw": muw,
+            "win": win, "series": series}
 
 
 def split(strats):
@@ -94,7 +122,16 @@ HTML = r"""<!doctype html>
  .banner{border-radius:10px;padding:10px 14px;margin:0 0 10px;max-width:920px;font-size:12.5px;line-height:1.5}
  .banner.gross{border-left:3px solid var(--warn);background:rgba(244,184,96,.06);color:#e8c98a}
  .banner.live{border-left:3px solid var(--up);background:rgba(39,211,138,.06);color:#9fe3bd}
- @media(max-width:560px){.left,.right{min-width:0} .kpis{grid-template-columns:repeat(2,1fr)}}
+ .kpis2{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 4px}
+ .kpis2 .kpi{padding:8px 10px} .kpis2 .v{font-size:15px}
+ .extranote{font-family:var(--mono);font-size:10px;color:var(--dim);margin:2px 0 8px;line-height:1.4}
+ .heat{margin-top:14px;overflow-x:auto}
+ .heat .ht{font-family:var(--mono);font-size:11px;color:var(--mut);margin:0 0 4px}
+ .heat table{border-collapse:collapse;font-family:var(--mono);font-size:10px;width:100%}
+ .heat td,.heat th{padding:4px 4px;text-align:center;border:1px solid var(--ink)}
+ .heat th{color:var(--mut);font-weight:500} .heat td.y{color:var(--mut);text-align:right;padding-right:7px}
+ .heat .ann{font-weight:700;border-left:2px solid var(--line2)}
+ @media(max-width:560px){.left,.right{min-width:0} .kpis{grid-template-columns:repeat(2,1fr)} .kpis2{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -126,7 +163,18 @@ HTML = r"""<!doctype html>
     <div class="kpi"><div class="k">Max DD</div><div class="v" id="kd">—</div></div>
     <div class="kpi"><div class="k">Win%</div><div class="v" id="kw">—</div></div>
    </div>
+   <div class="kpis2">
+    <div class="kpi"><div class="k">Gain/Pain</div><div class="v" id="kgp">—</div></div>
+    <div class="kpi"><div class="k">Ulcer</div><div class="v" id="kul">—</div></div>
+    <div class="kpi"><div class="k">CVaR 5%</div><div class="v" id="kcv">—</div></div>
+    <div class="kpi"><div class="k">K-ratio</div><div class="v" id="kkr">—</div></div>
+    <div class="kpi"><div class="k">Skew</div><div class="v" id="ksk">—</div></div>
+    <div class="kpi"><div class="k">Kurtosis</div><div class="v" id="kku">—</div></div>
+    <div class="kpi"><div class="k">Mo. u/w</div><div class="v" id="kuw">—</div></div>
+   </div>
+   <div class="extranote">Profit Factor · Expectancy · t-stat · SQN need a trade log (not the equity curve) → those live on Strategy Lab / the backtest scripts. *Sharpe/Sortino curve-derived.</div>
    <canvas id="cv" width="860" height="560"></canvas>
+   <div id="heat" class="heat"></div>
    <div class="bnote" id="warn"></div>
   </div></div>
  </div>
@@ -135,7 +183,22 @@ HTML = r"""<!doctype html>
 <script>
  const DATA=__DATA__; let L="1x", P="recent", key="cagr", dir=-1, sel=DATA[0];
  const f=(v,s="")=>{if(v===null||v===undefined||Number.isNaN(v))return `<span style="color:var(--dim)">—</span>`;const c=v>0?"pos":(v<0?"neg":"");return `<span class="${c}">${v}${s}</span>`};
+ const fp=(v,s="")=>(v===null||v===undefined||Number.isNaN(v))?`<span style="color:var(--dim)">—</span>`:v+s;  // plain, no sign-color
  function cell(s,lev){const lv=s.levels[lev]; return lv?lv[P]:null;}
+ function monthlyGrid(series){
+  if(!series||series.length<3) return '';
+  const m={};
+  for(let i=1;i<series.length;i++){const ym=series[i][0].slice(0,7);m[ym]=(m[ym]||1)*(series[i][1]/series[i-1][1]);}
+  const yr={}; Object.keys(m).forEach(ym=>{const a=ym.split('-');(yr[a[0]]=yr[a[0]]||{})[+a[1]]=(m[ym]-1)*100;});
+  const ys=Object.keys(yr).sort(), MO=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const col=v=>{if(v==null)return 'background:transparent';const a=Math.min(1,Math.abs(v)/15);return v>=0?`background:rgba(39,211,138,${a*.55});color:#d6f5e4`:`background:rgba(255,90,106,${a*.55});color:#ffd9de`;};
+  let h='<div class="ht">Monthly returns (approx, from the periodic curve) — green = up, red = down</div><table><tr><th></th>'+MO.map(x=>`<th>${x}</th>`).join('')+'<th class="ann">Year</th></tr>';
+  ys.forEach(y=>{let ann=1;for(let mo=1;mo<=12;mo++){if(yr[y][mo]!=null)ann*=(1+yr[y][mo]/100);}ann=(ann-1)*100;
+   h+=`<tr><td class="y">${y}</td>`;
+   for(let mo=1;mo<=12;mo++){const v=yr[y][mo];h+=`<td style="${col(v)}">${v==null?'':(v>=0?'+':'')+v.toFixed(1)}</td>`;}
+   h+=`<td class="ann" style="${col(ann)}">${(ann>=0?'+':'')+ann.toFixed(0)}%</td></tr>`;});
+  return h+'</table>';
+ }
  function draw(s,lv){
   const isR=s.category==="research";
   const L2=isR?"1x":(lv||(L==="all"?"1x":L)); const k=cell(s,L2);
@@ -148,6 +211,14 @@ HTML = r"""<!doctype html>
   document.getElementById("kca").innerHTML=f(k.calmar);
   document.getElementById("kd").innerHTML=f(k.maxdd,"%");
   document.getElementById("kw").textContent=(k.win||0)+"%";
+  document.getElementById("kgp").innerHTML=f(k.gtp);
+  document.getElementById("kul").innerHTML=fp(k.ulcer,"%");
+  document.getElementById("kcv").innerHTML=f(k.cvar,"%");
+  document.getElementById("kkr").innerHTML=f(k.kratio);
+  document.getElementById("ksk").innerHTML=fp(k.skew);
+  document.getElementById("kku").innerHTML=fp(k.kurt);
+  document.getElementById("kuw").textContent=(k.muw!=null?k.muw+" mo":"—");
+  document.getElementById("heat").innerHTML=monthlyGrid(k.series);
   const cv=document.getElementById("cv"),x=cv.getContext("2d"),W=cv.width,H=cv.height,Pd=58; x.clearRect(0,0,W,H);
   const pts=(k.series||[]).map(p=>p[1]),n=pts.length; if(!n)return;
   const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
