@@ -117,7 +117,8 @@ HTML = r"""<!doctype html>
  .toggles{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 16px;align-items:center}
  .seg{display:flex;gap:6px;flex-wrap:wrap} .seg .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);align-self:center;margin-right:2px}
  .seg button{font-family:var(--mono);font-size:12.5px;font-weight:600;background:var(--ink2);border:1px solid var(--line);color:var(--mut);border-radius:9px;padding:7px 14px;cursor:pointer;transition:.15s}
- .seg button:hover{color:var(--txt);border-color:var(--line2)}
+ .seg button{opacity:.6} .seg button.on{opacity:1}
+ .seg button:hover{color:var(--txt);border-color:var(--line2);opacity:1}
  .seg button.on{background:linear-gradient(180deg,#1b2942,#16223a);color:#fff;border-color:var(--accent)}
  .seg button.on.honest{border-color:var(--up);background:linear-gradient(180deg,#15301f,#11271a);color:#bdf0d2}
  .wrap{max-width:1600px}
@@ -294,10 +295,11 @@ HTML = r"""<!doctype html>
   const kv=r=> key==="name"?r.label : key==="category"?r.category : (r.k?r.k[key]:null);
   rows.sort((a,b)=>{let av=kv(a),bv=kv(b); if(typeof av==="string")return (av||"").localeCompare(bv||"")*dir; av=(av==null||Number.isNaN(av))?-Infinity:av; bv=(bv==null||Number.isNaN(bv))?-Infinity:bv; return (av-bv)*dir;});
   const na='<span class="mut">n/a</span>';
-  const cells=k=> !k ? '<td colspan="14" class="mut">— no data this period</td>'
-    : `<td>${f(k.cagr,'%')}</td><td>${f(k.sharpe)}</td><td>${f(k.sortino)}</td><td>${f(k.calmar)}</td><td class="neg">${f(k.maxdd,'%')}${k.ruin?' ⛔':''}</td>`
-     +`<td>${f(k.tstat)}</td><td>${k.pf!=null?f(k.pf):na}</td><td>${(k.wr!=null||k.win!=null)?((k.wr!=null?k.wr:k.win)+'%'):na}</td>`
-     +`<td>${f(k.gtp)}</td><td>${fp(k.ulcer,'%')}</td><td>${f(k.cvar,'%')}</td><td style="color:${k.skew<0?'var(--dn)':'var(--up)'}">${fp(k.skew)}</td><td>${fp(k.kurt)}</td><td>${k.muw!=null?k.muw+'mo':'—'}</td>`;
+  const cells=k=>{ if(!k) return '<td colspan="14" class="mut">— no data this period</td>';
+    const d=h=>k._proj?`<span style="opacity:.32">${h}</span>`:h;   // dim metrics leverage doesn't change
+    return `<td>${f(k.cagr,'%')}</td><td>${d(f(k.sharpe))}</td><td>${d(f(k.sortino))}</td><td>${f(k.calmar)}</td><td class="neg">${f(k.maxdd,'%')}${k.ruin?' ⛔':''}</td>`
+     +`<td>${d(f(k.tstat))}</td><td>${d(k.pf!=null?f(k.pf):na)}</td><td>${d((k.wr!=null||k.win!=null)?((k.wr!=null?k.wr:k.win)+'%'):na)}</td>`
+     +`<td>${d(f(k.gtp))}</td><td>${d(fp(k.ulcer,'%'))}</td><td>${d(f(k.cvar,'%'))}</td><td style="color:${k.skew<0?'var(--dn)':'var(--up)'}">${d(fp(k.skew))}</td><td>${d(fp(k.kurt))}</td><td>${d(k.muw!=null?k.muw+'mo':'—')}</td>`; };
   tb.innerHTML="";
   rows.forEach(r=>{const tr=document.createElement("tr");tr.className="row"+(sel===r.s?" sel":"");
    tr.innerHTML=`<td class="l">${r.label}</td>`+cells(r.k)+`<td class="l"><span class="tag ${r.category}">${r.category}</span></td>`;
@@ -307,7 +309,7 @@ HTML = r"""<!doctype html>
     ? "OOS: trend = genuine walk-forward; blend = quasi-OOS (weights fit on-sample). PF/Win/$ = fixed-config illustrative. 2×/3× = projection (vol-drag, real DD≈2×, ⛔=wipeout)."
     : "⚠ Full/Recent skew/kurt/CVaR are COARSE-sampled (~24d curve) — not comparable to OOS native-frequency. "
       + ((L==="all") ? "ALL = one row per strategy×leverage; 2×/3× include ~10% financing + vol-drag."
-         : (L!=="1x" ? L+" includes ~10% financing + vol-drag; real DD≈2×, >2× risks liquidation." : ""));
+         : (L!=="1x" ? L+" includes ~10% financing + vol-drag; real DD≈2×, >2× risks liquidation. Dimmed cols = unchanged by leverage (only CAGR/MaxDD/Calmar move)." : ""));
  }
  document.querySelectorAll("#per button").forEach(b=>b.onclick=()=>{P=b.dataset.p;document.querySelectorAll("#per button").forEach(x=>{x.classList.remove("on");x.classList.toggle("honest",x.dataset.p==="recent"||x.dataset.p==="oos");});b.classList.add("on");render();draw(sel);});
  document.querySelectorAll("#lev button").forEach(b=>b.onclick=()=>{L=b.dataset.l;document.querySelectorAll("#lev button").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();draw(sel);});
