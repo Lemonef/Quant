@@ -121,9 +121,10 @@ HTML = r"""<!doctype html>
  .seg button:hover{color:var(--txt);border-color:var(--line2);opacity:1}
  .seg button.on{background:linear-gradient(180deg,#1b2942,#16223a);color:#fff;border-color:var(--accent)}
  .seg button.on.honest{border-color:var(--up);background:linear-gradient(180deg,#15301f,#11271a);color:#bdf0d2}
- .wrap{max-width:1600px}
- .cols{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
- .left{flex:2.2 1 560px;min-width:0;overflow-x:auto} .right{flex:1 1 320px;min-width:300px}
+ .wrap{max-width:1500px}
+ .cols{display:block}
+ .left{width:100%;margin-bottom:18px;overflow-x:auto} .right{width:100%}
+ .right .card{max-width:820px}
  #t{width:100%;border-collapse:collapse;font-size:11px} #t th,#t td{padding:6px 7px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
  #t th{font-family:var(--mono);color:var(--mut);font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;cursor:pointer} #t td.l,#t th.l{text-align:left}
  #t td{font-family:var(--mono)}
