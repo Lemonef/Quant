@@ -15,7 +15,6 @@
   <div class="nav">
     <a class="home" href="./index.html">◆ Strategy Book</a>
     <a href="./stocks.html">📈 Stocks</a>
-    <a href="./rtn_core.html">⛔ RTN-Core post-mortem</a>
   </div>
 
   <h2><span class="n">01</span> Candidate bots</h2>
@@ -38,15 +37,10 @@
           <td class="num">1.11</td><td class="num">~16.8%</td><td class="num">−21.8%</td><td class="num warn">~−44%</td>
           <td class="mut" style="font-size:12px">fees ✓ / funding ✗</td><td>diversified (lower beta)</td><td><span class="badge deploy">Deploy · diversified</span></td>
         </tr>
-        <tr>
-          <td><b>RTN-Core</b> (rotational)<br><span class="mut" style="font-size:12px">rank-top-8 + PIT universe + funding-aware · rtn_core_test.py</span></td>
-          <td class="num dn"><b>0.53</b></td><td class="num mut">—</td><td class="num dn">−60%</td><td class="num dn">worse</td>
-          <td class="mut" style="font-size:12px">tested w/ fees</td><td class="dn">no — 0.43 vs 0.48 blend</td><td><span class="badge rej">Killed · not deployed</span></td>
-        </tr>
       </tbody>
     </table>
   </div>
-  <div class="card note">★ Blend base = .55/.25/.20, OOS Sharpe <b>1.28</b> / DD −9.8% (book_final.py, reproduced). ⚠️ Brain research claims a <b>portfolio bear-scaling</b> overlay (book ×0.3 when BTC&lt;200d-MA) lifts this to OOS ~1.57 / DD −7.2% / CAGR ~17.5% — but the audit could NOT locate a runnable script reproducing 1.57, so the verified <b>1.28</b> is shown and the scaling claim stays <b>UNVERIFIED until re-run</b>. The .55/.25/.20 weights were OOS-selected (mild post-selection) → "good," not "proven-optimal." <b class="dn">RTN-Core</b> was tested 2026-06-11 and killed: fails standalone (0.53) AND dilutes the blend (0.43 vs 0.48) AND 0.54-correlated to the core — the rotational/XS-momentum family is now closed.</div>
+  <div class="card note">★ Blend base = .55/.25/.20, OOS Sharpe <b>1.28</b> / DD −9.8% (book_final.py, reproduced). ⚠️ Brain research claims a <b>portfolio bear-scaling</b> overlay (book ×0.3 when BTC&lt;200d-MA) lifts this to OOS ~1.57 / DD −7.2% / CAGR ~17.5% — but the audit could NOT locate a runnable script reproducing 1.57, so the verified <b>1.28</b> is shown and the scaling claim stays <b>UNVERIFIED until re-run</b>. The .55/.25/.20 weights were OOS-selected (mild post-selection) → "good," not "proven-optimal."</div>
 
   <h2><span class="n">02</span> The gauntlet <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— every bot must pass</span></h2>
   <div class="card note" style="line-height:1.9">
@@ -77,11 +71,11 @@
 
   <h2><span class="n">04</span> Rejected <span class="mut" style="font-family:var(--mono);font-size:12px;font-weight:400">— failed the gauntlet (discipline, not findings)</span></h2>
   <div class="card note" style="line-height:1.7">
-    Bear-short sleeve (whipsaw + funding bleed) · Donchian ensemble SSRN (OOS 0.73 &lt; 0.86) · AdaptiveTrend arXiv Sharpe 2.41 (shorts + 150-coin survivorship, n/a) · vol-targeting (double-counts) · funding market-timing (fade thesis FALSE) · on-chain/liquidation data (decayed, overlaps crashreb) · XS-mom / lowvol / short-reversal (all negative OOS) · RTN-Core rotational (0.53, killed) · HFT lead-lag AVAX +1523% (dies at any real fee) · halving/Q4 seasonality (kept only as small caveated tilt). <b class="amber">The frontier is exhausted — gains now come from construction + execution, not new signals.</b>
+    Bear-short sleeve (whipsaw + funding bleed) · Donchian ensemble SSRN (OOS 0.73 &lt; 0.86) · AdaptiveTrend arXiv Sharpe 2.41 (shorts + 150-coin survivorship, n/a) · vol-targeting (double-counts) · funding market-timing (fade thesis FALSE) · on-chain/liquidation data (decayed, overlaps crashreb) · XS-mom / lowvol / short-reversal (all negative OOS) · HFT lead-lag AVAX +1523% (dies at any real fee) · halving/Q4 seasonality (kept only as small caveated tilt). <b class="amber">The frontier is exhausted — gains now come from construction + execution, not new signals.</b>
   </div>
 
   <footer>
-    Trend core + blend base reproduced (walkforward.py, book_final.py); bear-scaling 1.57 unverified pending re-run; 40/40/20 from the audited record; RTN-Core killed (rtn_core_test.py).<br>
+    Trend core + blend base reproduced (walkforward.py, book_final.py); bear-scaling 1.57 unverified pending re-run; 40/40/20 from the audited record.<br>
     Sources: backtest_results/QUANT_METHODOLOGY.md · brain scalping-bot.md / quant-trading-bot.md · method: skills/backtest-validation-SKILL.md<br>
     Research candidates, not live-trading approval · not financial advice
   </footer>
