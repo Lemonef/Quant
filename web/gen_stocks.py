@@ -70,8 +70,16 @@ def parse_positions(brain):
 
 def hist(tkr, days=400):
     try:
-        h = yf.Ticker(tkr).history(period=f"{days}d")["Close"]
-        return [[str(i.date()), round(float(v), 2)] for i, v in h.items()]
+        h = yf.Ticker(tkr).history(period=f"{days}d")["Close"].dropna()   # drop NaN closes
+        out = []
+        for i, v in h.items():
+            try:
+                fv = float(v)
+            except (TypeError, ValueError):
+                continue
+            if fv == fv and fv > 0:                                       # fv==fv filters NaN
+                out.append([str(i.date()), round(fv, 2)])
+        return out
     except Exception:
         return []
 
@@ -84,9 +92,11 @@ def main():
     out = []
     for h in positions:
         series = hist(h["ticker"])
-        cur = series[-1][1] if series else h["entry"]
+        cur = series[-1][1] if series else h["entry"]                     # no valid prices → fall back to entry (never NaN)
+        if cur is None or cur != cur:                                     # cur!=cur catches NaN
+            cur = h["entry"]
         ref = h["exit"] if h["exit"] else cur
-        pnl = round((ref - h["entry"]) / h["entry"] * 100, 1) if h["entry"] else 0.0
+        pnl = round((ref - h["entry"]) / h["entry"] * 100, 1) if (h["entry"] and ref is not None) else 0.0
         out.append({**h, "current": cur, "pnl": pnl, "series": series})
     DATA = json.dumps(out)
 
