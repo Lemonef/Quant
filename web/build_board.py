@@ -23,7 +23,7 @@ def metrics(series, win):
     if any(v <= 0 for v in eq):                                   # liquidation
         ci = next(i for i, v in enumerate(eq) if v <= 0)
         series = series[:ci + 1]; series[ci][1] = 0.0
-        return {"cagr": None, "sharpe": None, "maxdd": -100.0, "win": win, "series": series, "ruin": True}
+        return {"cagr": None, "sharpe": None, "sortino": None, "calmar": None, "maxdd": -100.0, "win": win, "series": series, "ruin": True}
     d0 = dt.date.fromisoformat(series[0][0]); d1 = dt.date.fromisoformat(series[-1][0])
     days = (d1 - d0).days or 1
     cagr = round(((eq[-1] / eq[0]) ** (365 / days) - 1) * 100, 1)
@@ -35,7 +35,12 @@ def metrics(series, win):
     sd = (sum((r - mean) ** 2 for r in rets) / len(rets)) ** 0.5
     ppy = 365 / (days / len(rets))
     sharpe = round(mean / sd * (ppy ** 0.5), 2) if sd > 0 else 0.0
-    return {"cagr": cagr, "sharpe": sharpe, "maxdd": round(mdd * 100, 1), "win": win, "series": series}
+    downs = [min(0.0, r) for r in rets]
+    dsd = (sum(x * x for x in downs) / len(rets)) ** 0.5
+    sortino = round(mean / dsd * (ppy ** 0.5), 2) if dsd > 0 else None
+    mddpct = round(mdd * 100, 1)
+    calmar = round(cagr / abs(mddpct), 2) if mddpct else None
+    return {"cagr": cagr, "sharpe": sharpe, "sortino": sortino, "calmar": calmar, "maxdd": mddpct, "win": win, "series": series}
 
 
 def split(strats):
@@ -82,7 +87,7 @@ HTML = r"""<!doctype html>
  .benchmark{background:rgba(183,156,255,.12);color:var(--accent2);border:1px solid rgba(183,156,255,.3)}
  .research{background:rgba(244,184,96,.12);color:var(--warn);border:1px dashed rgba(244,184,96,.5)}
  #cv{width:100%;height:300px;background:var(--ink2);border:1px solid var(--line);border-radius:10px}
- .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+ .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
  .kpi{background:var(--ink2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
  .kpi .k{font-family:var(--mono);color:var(--mut);font-size:10px;letter-spacing:.1em;text-transform:uppercase} .kpi .v{font-family:var(--mono);font-size:19px;font-weight:700;margin-top:2px}
  .bnote{font-family:var(--mono);font-size:12px;color:var(--warn);margin-top:10px}
@@ -116,6 +121,8 @@ HTML = r"""<!doctype html>
    <div class="kpis">
     <div class="kpi"><div class="k">CAGR</div><div class="v" id="kc">—</div></div>
     <div class="kpi"><div class="k">Sharpe*</div><div class="v" id="ks">—</div></div>
+    <div class="kpi"><div class="k">Sortino*</div><div class="v" id="kso">—</div></div>
+    <div class="kpi"><div class="k">Calmar</div><div class="v" id="kca">—</div></div>
     <div class="kpi"><div class="k">Max DD</div><div class="v" id="kd">—</div></div>
     <div class="kpi"><div class="k">Win%</div><div class="v" id="kw">—</div></div>
    </div>
@@ -137,6 +144,8 @@ HTML = r"""<!doctype html>
   if(!k){return;}
   document.getElementById("kc").innerHTML=f(k.cagr,"%");
   document.getElementById("ks").innerHTML=f(k.sharpe);
+  document.getElementById("kso").innerHTML=f(k.sortino);
+  document.getElementById("kca").innerHTML=f(k.calmar);
   document.getElementById("kd").innerHTML=f(k.maxdd,"%");
   document.getElementById("kw").textContent=(k.win||0)+"%";
   const cv=document.getElementById("cv"),x=cv.getContext("2d"),W=cv.width,H=cv.height,Pd=58; x.clearRect(0,0,W,H);
@@ -154,18 +163,18 @@ HTML = r"""<!doctype html>
     ? "✅ <b>Recent (2022→now)</b> — the 2018–21 explosion removed. Closest backtest proxy for the current regime, but STILL backtest + gross. The real forward truth is the live paper bot on the <b>Strategy Book</b>."
     : "⚠ <b>Full (2018–26)</b> — includes the 2020–21 mega-bull that won't repeat. Optimistic CEILING; do NOT use for forward expectation. Flip to <b>Recent</b> for the honest-er view.";
   const th=document.getElementById("th"),tb=document.querySelector("#t tbody");
-  th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr">CAGR%</th><th data-k="sharpe">Sharpe*</th><th data-k="maxdd">MaxDD%</th><th data-k="win">Win%</th><th class="l" data-k="category">Type</th></tr>`;
+  th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr">CAGR%</th><th data-k="sharpe">Sharpe*</th><th data-k="calmar">Calmar</th><th data-k="maxdd">MaxDD%</th><th data-k="win">Win%</th><th class="l" data-k="category">Type</th></tr>`;
   let rows=[];
-  if(L==="all"){ DATA.forEach(s=>(s.category==="research"?["1x"]:["1x","2x","3x"]).forEach(lv=>{const k=cell(s,lv);if(k)rows.push({label:s.name+" ("+lv+")",cagr:k.cagr,sharpe:k.sharpe,maxdd:k.maxdd,win:k.win||0,category:s.category,s:s,lv:lv});}));}
+  if(L==="all"){ DATA.forEach(s=>(s.category==="research"?["1x"]:["1x","2x","3x"]).forEach(lv=>{const k=cell(s,lv);if(k)rows.push({label:s.name+" ("+lv+")",cagr:k.cagr,sharpe:k.sharpe,calmar:k.calmar,maxdd:k.maxdd,win:k.win||0,category:s.category,s:s,lv:lv});}));}
   else { rows=DATA.map(s=>{
-    if(s.category==="research" && L!=="1x") return {label:s.name,cagr:null,sharpe:null,maxdd:null,win:null,category:s.category,s:s,lv:"1x"};
-    const k=cell(s,L);return {label:s.name,cagr:k.cagr,sharpe:k.sharpe,maxdd:k.maxdd,win:k.win||0,category:s.category,s:s,lv:L};});}
+    if(s.category==="research" && L!=="1x") return {label:s.name,cagr:null,sharpe:null,calmar:null,maxdd:null,win:null,category:s.category,s:s,lv:"1x"};
+    const k=cell(s,L);return {label:s.name,cagr:k.cagr,sharpe:k.sharpe,calmar:k.calmar,maxdd:k.maxdd,win:k.win||0,category:s.category,s:s,lv:L};});}
   rows.sort((a,b)=>{let av=key==="name"?a.label:(key==="category"?a.category:a[key]),bv=key==="name"?b.label:(key==="category"?b.category:b[key]);
     if(typeof av==="string")return av.localeCompare(bv)*dir;
     av=(av==null||Number.isNaN(av))?-Infinity:av; bv=(bv==null||Number.isNaN(bv))?-Infinity:bv; return (av-bv)*dir;});
   tb.innerHTML="";
   rows.forEach(r=>{const tr=document.createElement("tr");tr.className="row"+(sel===r.s?" sel":"");
-   tr.innerHTML=`<td class="l">${r.label}</td><td>${f(r.cagr)}</td><td>${f(r.sharpe)}</td><td>${f(r.maxdd)}</td><td>${r.win==null?'<span style="color:var(--dim)">—</span>':r.win}</td><td class="l"><span class="tag ${r.category}">${r.category}</span></td>`;
+   tr.innerHTML=`<td class="l">${r.label}</td><td>${f(r.cagr)}</td><td>${f(r.sharpe)}</td><td>${f(r.calmar)}</td><td>${f(r.maxdd)}</td><td>${r.win==null?'<span style="color:var(--dim)">—</span>':r.win}</td><td class="l"><span class="tag ${r.category}">${r.category}</span></td>`;
    tr.onclick=()=>{sel=r.s; draw(r.s, r.lv); render();};tb.appendChild(tr);});
   document.querySelectorAll("#t th").forEach(t=>{if(t.dataset.k)t.onclick=()=>{const kk=t.dataset.k;dir=(kk===key)?-dir:-1;key=kk;render();};});
   document.getElementById("warn").textContent = (L==="all") ? "ALL view: one row per strategy × leverage — click a header to sort. 2×/3× include ~10% financing; DD scales, >2× risks liquidation."
