@@ -281,7 +281,9 @@ HTML = r"""<!doctype html>
   document.getElementById("kku").innerHTML=fp(k.kurt);
   document.getElementById("kuw").textContent=(k.muw!=null?k.muw+" mo":"—");
   document.getElementById("heat").innerHTML=monthlyGrid(k.series);
-  const cv=document.getElementById("cv"),x=cv.getContext("2d"),W=cv.width,H=cv.height,Pd=58; x.clearRect(0,0,W,H);
+  const cv=document.getElementById("cv"),x=cv.getContext("2d"),Pd=58;
+  const dpr=window.devicePixelRatio||1; cv.width=(cv.clientWidth||860)*dpr; cv.height=(cv.clientHeight||300)*dpr; x.scale(dpr,dpr);
+  const W=cv.clientWidth||860,H=cv.clientHeight||300; x.clearRect(0,0,W,H);
   const pts=(k.series||[]).map(p=>p[1]),n=pts.length; if(!n)return;
   const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
   const X=i=>Pd+i/(n-1)*(W-2*Pd),Y=v=>H-Pd-(v-mn)/rng*(H-2*Pd);
@@ -334,7 +336,8 @@ HTML = r"""<!doctype html>
  }
  document.querySelectorAll("#per button").forEach(b=>b.onclick=()=>{P=b.dataset.p;document.querySelectorAll("#per button").forEach(x=>{x.classList.remove("on");x.classList.toggle("honest",x.dataset.p==="recent"||x.dataset.p==="oos");});b.classList.add("on");render();draw(sel);});
  document.querySelectorAll("#lev button").forEach(b=>b.onclick=()=>{L=b.dataset.l;document.querySelectorAll("#lev button").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();draw(sel);});
- render();draw(sel);
+ render();draw(sel,selLev);
+ let _rt; window.addEventListener('resize',()=>{clearTimeout(_rt);_rt=setTimeout(()=>draw(sel,selLev),150);});
 </script>
 <script type="module" src="./anim.js"></script>
 </body></html>"""
