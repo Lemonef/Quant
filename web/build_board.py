@@ -310,8 +310,8 @@ HTML = r"""<!doctype html>
   const hl=(L==='2x'||L==='3x')?' style="color:var(--accent);text-shadow:0 0 6px rgba(124,196,255,.4)"':'';   // mark the cols leverage actually moves
   th.innerHTML=`<tr><th class="l" data-k="name">Strategy</th><th data-k="cagr"${hl}>CAGR%${hl?' ▲':''}</th><th data-k="sharpe">Sharpe</th><th data-k="sortino">Sortino</th><th data-k="calmar"${hl}>Calmar${hl?' ▲':''}</th><th data-k="maxdd"${hl}>MaxDD%${hl?' ▲':''}</th><th data-k="tstat">t-stat</th><th data-k="pf">PF</th><th data-k="win">Win%</th><th data-k="gtp">Gain/Pain</th><th data-k="ulcer">Ulcer</th><th data-k="cvar">CVaR</th><th data-k="skew">Skew</th><th data-k="kurt">Kurt</th><th data-k="muw">Mo u/w</th><th class="l" data-k="category">Type</th></tr>`;
   let rows=[];
-  const LVC={'1x':'#7cc4ff','2x':'#27d38a','3x':'#e8a14b'};
-  const levTag=lv=>L==='all'?' <span style="color:'+LVC[lv]+';font-weight:700">('+lv+')</span>':'';
+  const LVC={'1x':'124,196,255','2x':'39,211,138','3x':'232,161,75'};
+  const levTag=lv=>{if(L!=='all')return '';const c=LVC[lv];return ' <span style="padding:1px 8px;border-radius:999px;background:rgba('+c+',.15);color:rgb('+c+');border:1px solid rgba('+c+',.4);font-weight:700;font-size:9.5px">'+lv+'</span>';};
   if(P==='oos'){
     DATA.filter(s=>s.oos).forEach(s=>{(L==='all'?['1x','2x','3x']:[L]).forEach(lv=>{if(s.category==='research'&&lv!=='1x')return;const k=cell(s,lv);if(!k)return;const tag=k._holdout?'  · holdout':(s.name.includes('quasi')?'':'  · WF✓');rows.push({label:s.name+levTag(lv)+tag,k,category:s.category,s,lv});});});
   } else if(L==="all"){
