@@ -24,7 +24,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps
-        run: pip install requests pandas numpy
+        run: pip install requests pandas numpy yfinance
 
       - name: Run one bot cycle
         env:
@@ -32,11 +32,22 @@ jobs:
           TG_CHAT:  ${{ secrets.TG_CHAT }}
         run: python live_bot/paper_bot.py
 
+      - name: Rebuild Spike-Hunter stocks page from brain ledger (best-effort)
+        run: |
+          AUTH="${{ secrets.BRAIN_TOKEN }}"
+          if [ -n "$AUTH" ]; then URL="https://x-access-token:$AUTH@github.com/Lemonef/SecondBrain.git"; else URL="https://github.com/Lemonef/SecondBrain.git"; fi
+          if git clone --depth 1 "$URL" _brain 2>/dev/null; then
+            SECOND_BRAIN=_brain python web/gen_stocks.py || echo "stocks gen failed"
+          else
+            echo "brain repo not reachable (private? add BRAIN_TOKEN secret) — stocks page not rebuilt this cycle"
+          fi
+          rm -rf _brain
+
       - name: Persist state back to repo
         run: |
           git config user.name  "paper-bot"
           git config user.email "bot@users.noreply.github.com"
-          for f in live_bot/state_*.json live_bot/equity_*.csv live_bot/trades.csv live_bot/regime_log.csv web/data.json; do
+          for f in live_bot/state_*.json live_bot/equity_*.csv live_bot/trades.csv live_bot/regime_log.csv web/data.json web/stocks.html; do
             [ -f "$f" ] && git add -f "$f"
           done
           git commit -m "paper-bot run $(date -u +%FT%TZ)" || echo "no changes"
