@@ -68,6 +68,24 @@ def parse_positions(brain):
     return rows
 
 
+def _drop_glitches(out, jump=0.25):
+    """Drop lone bad-tick bars: a close that jumps >`jump` from BOTH neighbors in
+    opposite directions (a spike that immediately reverts = data glitch, e.g. the
+    RCAT $14.98 tick). Real gaps/trends move ONE direction and survive — only a
+    spike-and-revert is removed. Keeps the last price honest for %P&L."""
+    if len(out) < 3:
+        return out
+    keep = [out[0]]
+    for i in range(1, len(out) - 1):
+        prev, cur, nxt = out[i - 1][1], out[i][1], out[i + 1][1]
+        up = cur > prev * (1 + jump) and cur > nxt * (1 + jump)            # spike up then back
+        dn = cur < prev * (1 - jump) and cur < nxt * (1 - jump)            # spike down then back
+        if not (up or dn):
+            keep.append(out[i])
+    keep.append(out[-1])
+    return keep
+
+
 def hist(tkr, days=400):
     try:
         h = yf.Ticker(tkr).history(period=f"{days}d")["Close"].dropna()   # drop NaN closes
@@ -79,7 +97,7 @@ def hist(tkr, days=400):
                 continue
             if fv == fv and fv > 0:                                       # fv==fv filters NaN
                 out.append([str(i.date()), round(fv, 2)])
-        return out
+        return _drop_glitches(out)                                        # strip lone bad-tick bars
     except Exception:
         return []
 
