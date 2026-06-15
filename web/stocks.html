@@ -53,7 +53,10 @@
   document.getElementById("kp").innerHTML=f(h.pnl,"%");
   document.getElementById("ks").innerHTML='<span class="tag '+(h.status=="OPEN"?'':'closed')+'">'+h.status+'</span>';
   document.getElementById("kf").textContent=h.flavor;
-  const cv=document.getElementById("cv"),x=cv.getContext("2d"),W=cv.width,H=cv.height,P=52;
+  const cv=document.getElementById("cv"),x=cv.getContext("2d"),P=52;
+  // HiDPI: scale backing store by devicePixelRatio so text/lines render SHARP (was blurry — canvas upscaled by the browser)
+  const dpr=window.devicePixelRatio||1,_r=cv.getBoundingClientRect(),W=Math.round(_r.width)||cv.width,H=Math.round(_r.height)||cv.height;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+"px";cv.style.height=H+"px";x.setTransform(dpr,0,0,dpr,0,0);
   x.clearRect(0,0,W,H); const s=h.series,n=s.length; if(!n)return;
   const pts=s.map(p=>p[1]),rmn=Math.min(...pts,h.entry),rmx=Math.max(...pts,h.entry);
   // LOG y-scale: names that spike then crash (LEU 8x'd to $436) squish the actionable near-entry range into the bottom ~15% on a linear axis. Log spreads it out (3% pad).
