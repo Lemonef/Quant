@@ -179,7 +179,10 @@
   const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
   const X=i=>Pd+i/(n-1)*(W-2*Pd),Y=v=>H-Pd-(v-mn)/rng*(H-2*Pd);
   x.strokeStyle="#222c3d";x.fillStyle="#8a97aa";x.font="13px 'JetBrains Mono',monospace";
-  for(let g=0;g<=4;g++){const v=mn+rng*g/4,yy=Y(v);x.beginPath();x.moveTo(Pd,yy);x.lineTo(W-Pd,yy);x.stroke();x.fillText("$"+Math.round(v).toLocaleString(),6,yy+4);}
+  // CLEAN round gridlines (1/2/5 x 10^n nice step) instead of ugly evenly-spaced raw values ($24,342 etc.)
+  const rs=rng/4,mag=Math.pow(10,Math.floor(Math.log10(rs))),nm=rs/mag,step=(nm<1.5?1:nm<3?2:nm<7?5:10)*mag;
+  const lab=v=>v>=1000?"$"+(v/1000).toFixed(v%1000?1:0)+"k":"$"+Math.round(v);
+  for(let v=Math.ceil(mn/step)*step; v<=mx; v+=step){const yy=Y(v);x.beginPath();x.moveTo(Pd,yy);x.lineTo(W-Pd,yy);x.stroke();x.fillText(lab(v),6,yy+4);}
   if(mn<=10000&&mx>=10000){x.strokeStyle="#2c3a50";x.setLineDash([4,4]);x.beginPath();x.moveTo(Pd,Y(10000));x.lineTo(W-Pd,Y(10000));x.stroke();x.setLineDash([]);}
   x.strokeStyle=(k.cagr==null)?"#ff5a6a":(k.cagr>=0?"#27d38a":"#ff5a6a");x.lineWidth=2;x.beginPath();
   pts.forEach((v,i)=>{i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v))});x.stroke();

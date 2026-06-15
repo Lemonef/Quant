@@ -60,7 +60,10 @@
   const lmn=Math.log(rmn*0.97),lmx=Math.log(rmx*1.03),lrng=(lmx-lmn)||1;
   const X=i=>P+i/(n-1)*(W-2*P),Y=v=>H-P-(Math.log(v)-lmn)/lrng*(H-2*P);
   x.strokeStyle="#1c2532";x.fillStyle="#8a97aa";x.font="13px 'JetBrains Mono',monospace";
-  for(let g=0;g<=4;g++){const v=Math.exp(lmn+lrng*g/4),yy=Y(v);x.beginPath();x.moveTo(P,yy);x.lineTo(W-P,yy);x.stroke();x.fillText("$"+(v>=100?Math.round(v):v.toFixed(1)),6,yy+4);}
+  // snap gridline labels to CLEAN round numbers (was ugly log values like $90.2/$154/$263/$449)
+  const niceN=v=>{const s=v<5?0.5:v<20?1:v<50?5:v<200?10:v<500?25:v<2000?100:v<10000?500:1000;return Math.round(v/s)*s;};
+  const seenY=new Set();
+  for(let g=0;g<=4;g++){const v=niceN(Math.exp(lmn+lrng*g/4));if(v<=0||seenY.has(v))continue;seenY.add(v);const yy=Y(v);x.beginPath();x.moveTo(P,yy);x.lineTo(W-P,yy);x.stroke();x.fillText("$"+(v>=1000?(v/1000).toFixed(v%1000?1:0)+"k":v),6,yy+4);}
   x.fillText(s[0][0],P,H-16);x.textAlign="right";x.fillText(s[n-1][0],W-P,H-16);x.textAlign="left";
   x.strokeStyle="#e8a14b";x.setLineDash([5,4]);x.beginPath();x.moveTo(P,Y(h.entry));x.lineTo(W-P,Y(h.entry));x.stroke();x.setLineDash([]);
   x.fillStyle="#e8a14b";x.fillText("entry $"+h.entry,P+6,Y(h.entry)-6);
