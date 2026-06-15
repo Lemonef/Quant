@@ -33,19 +33,20 @@
 
  <div class="kpis">
   <div class="kpi"><div class="k">Cases (catalyst-scored)</div><div class="v">~44</div></div>
-  <div class="kpi"><div class="k">Pool baseline capture</div><div class="v">~43%</div></div>
-  <div class="kpi"><div class="k">ENTER capture</div><div class="v pos">56%</div></div>
-  <div class="kpi"><div class="k">DROP stopped-out</div><div class="v">59%</div></div>
+  <div class="kpi"><div class="k">ENTER capture (unbiased pool)</div><div class="v pos">86%</div></div>
+  <div class="kpi"><div class="k">vs baseline 48%</div><div class="v pos">+38pp</div></div>
+  <div class="kpi"><div class="k">Random-label p-value</div><div class="v pos">0.0006</div></div>
  </div>
 
- <h2>1 · Conviction ranks outcomes (combined n≈44, replicated)</h2>
- <p class="sub">The /6 conviction monotonically orders forward outcomes — on capture AND on peak — across both independent batches.</p>
+ <h2>1 · Conviction ranks outcomes — on an UNBIASED screener pool (n=40)</h2>
+ <p class="sub">Pool built by the systematic screener (`screen.py pit`, 5 regime-spanning dates), NOT hand-picked — includes the names that "looked primed and died." The /6 still monotonically orders outcomes, and the edge <b>widened</b> vs the earlier hand-picked pool (gauntlet's #1 survivorship objection: addressed).</p>
  <table class="bt">
-  <tr><th class="l">Bucket (blind /6 + verdict)</th><th>n</th><th>Capture (+40/−25)</th><th>vs ~43% base</th><th>Avg PEAK (unbiased)</th></tr>
-  <tr><td class="l pos">ENTER (high conviction)</td><td>9</td><td class="pos">56%</td><td class="pos">+13pp</td><td class="pos">dominant — picks the monster spikes</td></tr>
-  <tr><td class="l">WATCH</td><td>18</td><td>44%</td><td>~base</td><td>middling (least-calibrated)</td></tr>
-  <tr><td class="l neg">DROP</td><td>17</td><td class="neg">35%</td><td class="neg">−8pp · 59% stopped</td><td>low — screens losers above chance</td></tr>
+  <tr><th class="l">Bucket (blind /6 + verdict)</th><th>n</th><th>Capture (+40/−25)</th><th>vs 48% base</th><th>Note</th></tr>
+  <tr><td class="l pos">ENTER (high conviction)</td><td>14</td><td class="pos">86%</td><td class="pos">+38pp</td><td class="pos">random-label p=0.0006 (real signal)</td></tr>
+  <tr><td class="l">WATCH</td><td>11</td><td>55%</td><td>~base</td><td>noisy/least-calibrated</td></tr>
+  <tr><td class="l neg">DROP</td><td>15</td><td class="neg">7%</td><td class="neg">87% stopped</td><td>screens losers strongly</td></tr>
  </table>
+ <p class="sub"><b>Not disguised bull-beta:</b> ENTER beat baseline in BOTH regimes — BULL 80% (vs 46%) AND BEAR 100% 4/4 (vs 50%); bear winners were cyclical-snapback / re-rating flavors. ⚠️ <b>Remaining caveat:</b> blinding imperfect (same agent enriched + judged well-known tickers — possible forward-knowledge leak) + small per-cell n → decisive next test = a SEPARATE blind judge + a live track record.</p>
 
  <h2>2 · The exit, not the entry, is the weak link</h2>
  <p class="sub">Re-scoring the 9 ENTER cases (the framework's best calls) with the v3 daily-managed overlay (trail + trim + re-enter) vs simply buy-&amp;-hold, over 730d:</p>
