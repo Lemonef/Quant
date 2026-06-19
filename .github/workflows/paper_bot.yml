@@ -24,7 +24,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps
-        run: pip install requests pandas numpy yfinance
+        run: pip install requests pandas numpy yfinance markdown
 
       - name: Run one bot cycle
         env:
@@ -38,8 +38,9 @@ jobs:
           if [ -n "$AUTH" ]; then URL="https://x-access-token:$AUTH@github.com/Lemonef/SecondBrain.git"; else URL="https://github.com/Lemonef/SecondBrain.git"; fi
           if git clone --depth 1 "$URL" _brain 2>/dev/null; then
             SECOND_BRAIN=_brain python web/gen_stocks.py || echo "stocks gen failed"
+            SECOND_BRAIN=_brain python web/gen_scans.py  || echo "scans gen failed"
           else
-            echo "brain repo not reachable (private? add BRAIN_TOKEN secret) — stocks page not rebuilt this cycle"
+            echo "brain repo not reachable (private? add BRAIN_TOKEN secret) — stocks/scans pages not rebuilt this cycle"
           fi
           rm -rf _brain
 
@@ -47,7 +48,7 @@ jobs:
         run: |
           git config user.name  "paper-bot"
           git config user.email "bot@users.noreply.github.com"
-          for f in live_bot/state_*.json live_bot/equity_*.csv live_bot/trades.csv live_bot/regime_log.csv web/data.json web/stocks.html; do
+          for f in live_bot/state_*.json live_bot/equity_*.csv live_bot/trades.csv live_bot/regime_log.csv web/data.json web/stocks.html web/scans.html; do
             [ -f "$f" ] && git add -f "$f"
           done
           git commit -m "paper-bot run $(date -u +%FT%TZ)" || echo "no changes"
