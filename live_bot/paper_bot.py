@@ -55,34 +55,47 @@ def fetch(sym,limit=400):
             last=e; continue
     raise last or RuntimeError(f"all kline hosts failed for {sym}")
 FUNDING_URL="https://fapi.binance.com/fapi/v1/fundingRate"
-FUNDING_SRC="none"   # which source actually served funding this run (binance | bybit | none) — surfaced to the UI
-def _bybit_funding(sym,limit):
-    """Cloud-safe funding fallback. Binance FUTURES (fapi) is geo-blocked from GitHub IPs (451) and has
-    no vision mirror, so when fapi is unreachable we use Bybit's 8h linear-perp funding — same 8h cadence,
-    arb-linked to Binance (typically within ~1-2 bps), paginated (Bybit caps at 200/call)."""
-    out=[]; end=None
-    while len(out)<limit:
-        p={"category":"linear","symbol":sym,"limit":200}
-        if end: p["endTime"]=end
-        r=requests.get("https://api.bybit.com/v5/market/funding/history",params=p,timeout=20); r.raise_for_status()
-        rows=r.json().get("result",{}).get("list",[])
-        if not rows: break
-        for x in rows: out.append((int(x["fundingRateTimestamp"]),float(x["fundingRate"])))
-        end=int(rows[-1]["fundingRateTimestamp"])-1
-        if len(rows)<200: break
-    out.sort()                       # chronological, to match Binance fapi order
+FUNDING_SRC="none"   # which source served funding this run (binance-live | binance-archive | none) — surfaced to the UI
+def _vision_funding(sym,limit):
+    """Cloud-safe funding from Binance's OWN public archive (data.binance.vision). fapi.binance.com is
+    geo-blocked from US/GitHub IPs (451), and Bybit/OKX also block US IPs — so the only EXACT-Binance,
+    cloud-reachable funding is the monthly archive zips. These finalize at month-end (current partial
+    month 404s), so the live throttle may lag ~days; the carry tab (historical) is exact. Walks back
+    month-by-month until it has `limit` 8h points."""
+    import zipfile, io
+    from datetime import timedelta
+    base="https://data.binance.vision/data/futures/um/monthly/fundingRate"
+    out=[]; d=datetime.now(timezone.utc).replace(day=1); months=0; misses=0
+    while len(out)<limit and months<16:
+        ym=d.strftime("%Y-%m")
+        try:
+            r=requests.get(f"{base}/{sym}/{sym}-fundingRate-{ym}.zip",timeout=20)
+            if r.status_code==200:
+                rows=zipfile.ZipFile(io.BytesIO(r.content)).read(zipfile.ZipFile(io.BytesIO(r.content)).namelist()[0]).decode().splitlines()
+                for ln in rows:
+                    p=ln.split(",")
+                    if p and p[0].isdigit(): out.append((int(p[0]),float(p[2])))  # calc_time, last_funding_rate
+                misses=0
+            else:
+                misses+=1
+                if misses>=2 and not out: break    # current + prior month both absent and nothing yet
+        except Exception:
+            pass
+        d=(d-timedelta(days=1)).replace(day=1)     # previous month
+        months+=1
+    out.sort()                                     # chronological, to match fapi order
     return out[-limit:]
 def fetch_funding(sym,limit=500):  # perp funding rate history (8h periods)
     global FUNDING_SRC
-    try:                             # 1) Binance fapi — exact, works on a non-US/home IP
+    try:                             # 1) Binance fapi — exact + real-time, works on a non-US/home IP
         r=requests.get(FUNDING_URL,params={"symbol":sym,"limit":min(limit,1000)},timeout=20); r.raise_for_status()
         data=[(int(x["fundingTime"]),float(x["fundingRate"])) for x in r.json()]
-        if data: FUNDING_SRC="binance"; return data
+        if data: FUNDING_SRC="binance-live"; return data
     except Exception:
         pass
-    try:                             # 2) Bybit — cloud-safe fallback (what CI actually uses)
-        data=_bybit_funding(sym,limit)
-        if data: FUNDING_SRC="bybit"
+    try:                             # 2) Binance Vision monthly archive — exact, cloud-safe (what CI uses)
+        data=_vision_funding(sym,limit)
+        if data: FUNDING_SRC="binance-archive"
         return data
     except Exception:
         return []
