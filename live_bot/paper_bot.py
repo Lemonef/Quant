@@ -55,10 +55,35 @@ def fetch(sym,limit=400):
             last=e; continue
     raise last or RuntimeError(f"all kline hosts failed for {sym}")
 FUNDING_URL="https://fapi.binance.com/fapi/v1/fundingRate"
+FUNDING_SRC="none"   # which source actually served funding this run (binance | bybit | none) — surfaced to the UI
+def _bybit_funding(sym,limit):
+    """Cloud-safe funding fallback. Binance FUTURES (fapi) is geo-blocked from GitHub IPs (451) and has
+    no vision mirror, so when fapi is unreachable we use Bybit's 8h linear-perp funding — same 8h cadence,
+    arb-linked to Binance (typically within ~1-2 bps), paginated (Bybit caps at 200/call)."""
+    out=[]; end=None
+    while len(out)<limit:
+        p={"category":"linear","symbol":sym,"limit":200}
+        if end: p["endTime"]=end
+        r=requests.get("https://api.bybit.com/v5/market/funding/history",params=p,timeout=20); r.raise_for_status()
+        rows=r.json().get("result",{}).get("list",[])
+        if not rows: break
+        for x in rows: out.append((int(x["fundingRateTimestamp"]),float(x["fundingRate"])))
+        end=int(rows[-1]["fundingRateTimestamp"])-1
+        if len(rows)<200: break
+    out.sort()                       # chronological, to match Binance fapi order
+    return out[-limit:]
 def fetch_funding(sym,limit=500):  # perp funding rate history (8h periods)
-    try:
-        r=requests.get(FUNDING_URL,params={"symbol":sym,"limit":limit},timeout=20); r.raise_for_status()
-        return [(int(x["fundingTime"]),float(x["fundingRate"])) for x in r.json()]
+    global FUNDING_SRC
+    try:                             # 1) Binance fapi — exact, works on a non-US/home IP
+        r=requests.get(FUNDING_URL,params={"symbol":sym,"limit":min(limit,1000)},timeout=20); r.raise_for_status()
+        data=[(int(x["fundingTime"]),float(x["fundingRate"])) for x in r.json()]
+        if data: FUNDING_SRC="binance"; return data
+    except Exception:
+        pass
+    try:                             # 2) Bybit — cloud-safe fallback (what CI actually uses)
+        data=_bybit_funding(sym,limit)
+        if data: FUNDING_SRC="bybit"
+        return data
     except Exception:
         return []
 def rma(s,n): return s.ewm(alpha=1/n,adjust=False).mean()
@@ -360,7 +385,8 @@ def write_webdata(totals, states, btc_ok=True):
     total_trades=sum(L["trades"] for t in tabs for L in t["levels"])
     data={"updated":now()[:16],"start":START,"n_coins":len(COINS),"tabs":tabs,"positions":pos,
           "regime":"bull" if btc_ok else "bear","bookv2_exposure":1.0 if btc_ok else BEAR_MULT,
-          "total_trades":total_trades}
+          "total_trades":total_trades,"funding_src":FUNDING_SRC,
+          "price_src":KLINE_HOSTS[0].replace("https://","")}
     web=HERE.parent/"web"; web.mkdir(exist_ok=True)
     def _clean(o):  # strip NaN/Inf -> 0.0 so the JSON is always valid (else browser res.json() throws, board silently dies)
         if isinstance(o,float): return o if (o==o and o not in (float("inf"),float("-inf"))) else 0.0
