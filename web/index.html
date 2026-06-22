@@ -94,8 +94,16 @@ let DATA=null, active=0, chart=null;
 function render(){
   if(!DATA) return;
   const tabs=DATA.tabs||[];
-  document.getElementById('tabs').innerHTML=tabs.map((t,i)=>
-    `<div class="tab ${i===active?'active':''}" onclick="sel(${i})">${t.name}</div>`).join('');
+  // split tabs: TRADE books (real entries; equity moves only when a position is on) vs
+  // ALWAYS-INVESTED books (gold hold / funding harvest — computed continuously, no entry signal).
+  const isHold=n=>/gold|paxg|funding|carry|diversified|40\/40|50\/50|cppi|buy-hold/i.test(n||'');
+  const trade=[], hold=[];
+  tabs.forEach((t,i)=>(isHold(t.name)?hold:trade).push({t,i}));
+  const grp=lab=>`<div style="flex-basis:100%;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:10px 2px 2px">${lab}</div>`;
+  const cells=arr=>arr.map(({t,i})=>`<div class="tab ${i===active?'active':''}" onclick="sel(${i})">${t.name}</div>`).join('');
+  document.getElementById('tabs').innerHTML=
+    grp('📈 Trade books — $10k capital, moves only on entry')+cells(trade)+
+    grp('📐 Always-invested — computed from gold/funding, no entry')+cells(hold);
   const tab=tabs[active]; if(!tab) return;
   document.getElementById('stats').innerHTML=tab.levels.map(L=>{
     const up=L.pnl_pct>=0, d=L.derived;
