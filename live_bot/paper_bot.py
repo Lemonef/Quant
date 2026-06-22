@@ -389,11 +389,11 @@ def write_webdata(totals, states, btc_ok=True):
     except Exception:
         tabs.append({"name":"Funding / Carry ★ (delta-neutral, real edge)",
                      "levels":[fund_block(f"funding_{L}x",[],START,L) for L in LEVELS]})
-    pos=[{"coin":c,"units":round(cs["units"],6),"entry":cs["entry"],"stop":round(cs.get("stop",0),6)}
+    pos=[{"coin":c,"strat":"trend","units":round(cs["units"],6),"entry":cs["entry"],"stop":round(cs.get("stop",0),6)}
          for c,cs in states["trend_1x"]["coins"].items() if cs["units"]>0]
-    pos+=[{"coin":c+" (flush)","units":round(cs["units"],6),"entry":cs["entry"],"stop":"+5%/2bar"}
+    pos+=[{"coin":c,"strat":"flush","units":round(cs["units"],6),"entry":cs["entry"],"stop":"+5%/2bar"}
           for c,cs in states["flush_1x"]["coins"].items() if cs["units"]>0]
-    pos+=[{"coin":c+" (crashreb)","units":round(cs["units"],6),"entry":cs["entry"],"stop":"+5%/3bar"}
+    pos+=[{"coin":c,"strat":"crashreb","units":round(cs["units"],6),"entry":cs["entry"],"stop":"+5%/3bar"}
           for c,cs in states["crashreb_1x"]["coins"].items() if cs["units"]>0]
     total_trades=sum(L["trades"] for t in tabs for L in t["levels"])
     data={"updated":now()[:16],"start":START,"n_coins":len(COINS),"tabs":tabs,"positions":pos,

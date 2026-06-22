@@ -43,10 +43,11 @@
   </div>
 
   <h2><span class="n">03</span> Open positions</h2>
+  <div class="tabs" id="posfilter" style="margin:0 2px 10px"></div>
   <div class="card flush">
     <table>
-      <thead><tr><th>Coin</th><th>Units</th><th>Entry</th><th>Stop</th></tr></thead>
-      <tbody id="postable"><tr><td colspan="4" class="mut">loading…</td></tr></tbody>
+      <thead><tr><th>Coin</th><th>Strategy</th><th>Units</th><th>Entry</th><th>Stop</th></tr></thead>
+      <tbody id="postable"><tr><td colspan="5" class="mut">loading…</td></tr></tbody>
     </table>
   </div>
 
@@ -106,7 +107,15 @@ function render(){
       <td class="mono">${wr}</td><td class="mono">${pf}</td><td class="mono">${tr}</td></tr>`;
   }).join('');
   const note=document.getElementById('derivednote');
-  if(note) note.style.display=tab.levels.some(L=>L.derived)?'block':'none';
+  const isDerived=tab.levels.some(L=>L.derived);
+  if(note) note.style.display=isDerived?'block':'none';
+  // warmup banner is TAB-AWARE: only a flat BASE book is "holding cash". Derived books (Blend/Gold/Funding)
+  // move continuously (computed from return streams), so "0 trades — holding cash" must NOT show on them.
+  const wu=document.getElementById('warmup');
+  if(wu){ if((DATA.total_trades||0)===0 && !isDerived){wu.style.display='block';
+      wu.innerHTML='⏳ <b>Warming up.</b> This base book is live but no entry signal has fired (no breakout / flush / crash recently), so it sits at $10,000 in cash — a trend book stays in cash until a trend appears (working as designed). Derived books (Blend / Gold / Funding) still move; they\'re computed from the sleeve return streams, not discrete trades.';}
+    else wu.style.display='none'; }
+  renderPositions();
   // empty-series guard: derived books with no live equity stream → clean placeholder, not a broken 0–1 chart
   const cv=document.getElementById('chart'), nc=document.getElementById('nochart');
   const hasSeries=tab.levels.some(L=>L.series && L.series.length);
@@ -119,11 +128,20 @@ function render(){
   cv.style.display='block'; nc.style.display='none';
   const labels=(tab.levels[0]?.series||[]).map(r=>r[0]);
   const ds=tab.levels.map(L=>({label:L.lev,data:L.series.map(r=>r[1]),borderColor:LCOL[L.lev]||'#999',
-    backgroundColor:'transparent',pointRadius:0,borderWidth:2,tension:.25}));
+    backgroundColor:'transparent',pointRadius:0,pointHoverRadius:4,borderWidth:2,tension:.25}));
   if(chart) chart.destroy();
-  chart=new Chart(document.getElementById('chart'),{type:'line',data:{labels,datasets:ds},
-    options:{plugins:{legend:{labels:{color:'#e9eef6',font:{family:'JetBrains Mono'}}}},
-      scales:{x:{ticks:{color:'#8a97aa',maxTicksLimit:8,font:{family:'JetBrains Mono'}},grid:{display:false}},
+  // vertical hover crosshair (dashed line from the hovered date up through the curves)
+  const xhair={id:'xhair',afterDraw(c){const a=c.tooltip&&c.tooltip._active;if(a&&a.length){const x=a[0].element.x,ctx=c.ctx;
+    ctx.save();ctx.beginPath();ctx.setLineDash([4,4]);ctx.moveTo(x,c.chartArea.top);ctx.lineTo(x,c.chartArea.bottom);
+    ctx.lineWidth=1;ctx.strokeStyle='rgba(255,255,255,.55)';ctx.stroke();ctx.restore();}}};
+  chart=new Chart(document.getElementById('chart'),{type:'line',data:{labels,datasets:ds},plugins:[xhair],
+    options:{interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{color:'#e9eef6',font:{family:'JetBrains Mono'}}},
+        tooltip:{mode:'index',intersect:false,
+          callbacks:{title:it=>it.length?it[0].label.replace('T',' '):'',
+                     label:c=>' '+c.dataset.label+'   $'+Number(c.parsed.y).toLocaleString(undefined,{maximumFractionDigits:0})}}},
+      scales:{x:{ticks:{color:'#8a97aa',maxRotation:0,autoSkip:true,maxTicksLimit:7,font:{family:'JetBrains Mono',size:11},
+                   callback(v){const l=this.getLabelForValue(v);return l?l.slice(5,10):l;}},grid:{display:false}},
               y:{ticks:{color:'#8a97aa',font:{family:'JetBrains Mono'}},grid:{color:'#1a2230'}}}}});
 }
 function sel(i){active=i;render();}
@@ -136,16 +154,34 @@ async function load(){
       rg.querySelector('span:last-child').textContent=bull?'BULL — full size':'BEAR — book at '+Math.round((DATA.bookv2_exposure||1)*100)+'%';}
     const ls=document.getElementById('livestat'), nt=DATA.total_trades||0;
     ls.querySelector('span:last-child').textContent=nt===0?'0 trades — holding cash':nt+' trades live';
-    const wu=document.getElementById('warmup');
-    if((nt)===0){wu.style.display='block';
-      wu.innerHTML='⏳ <b>Warming up.</b> The bot is live but no entry signal has fired (no breakout / flush / crash in recent bars), so equity sits at the $10,000 start. This is the strategy working as designed — a trend book stays in cash until a trend appears. Charts populate on the first trade.';}
-    else wu.style.display='none';
-    const tb=document.getElementById('postable');
-    tb.innerHTML=DATA.positions.length?DATA.positions.map(o=>
-      `<tr><td class="mono">${o.coin}</td><td class="mono">${o.units}</td><td class="mono">${o.entry}</td><td class="mono">${o.stop}</td></tr>`).join('')
-      :'<tr><td colspan="4" class="mut">No open positions — holding cash.</td></tr>';
+    renderPositions();
     render();
   }catch(e){document.getElementById('updated').querySelector('span:last-child').textContent='no data yet';}
+}
+// Open-positions: clickable per-strategy filter (All + the 3 books that actually hold — trend/flush/crashreb;
+// the derived blend/gold/funding tabs place no trades of their own, so they have no direct positions).
+// Open-positions: TWO tabs — the CURRENT strategy page you're on + All. Only the base books
+// (Donchian/Flush/Crashreb) hold real positions; derived books place none.
+let posFilter='cur';
+const tabStrat=n=>/donchian|^trend|\btrend\b/i.test(n||'')&&!/\+|blend|50\/50/i.test(n||'')?'trend'
+  :/flush/i.test(n||'')?'flush':/crashreb|crash/i.test(n||'')?'crashreb':null;
+function renderPositions(){
+  const P=(DATA&&DATA.positions)||[];
+  const tab=((DATA&&DATA.tabs)||[])[active]||{};
+  const cur=tabStrat(tab.name);
+  const curLab=(tab.name||'This book').replace(/\s*[★(].*$/,'').trim();
+  const curN=cur?P.filter(o=>o.strat===cur).length:0;
+  const pf=document.getElementById('posfilter');
+  pf.innerHTML=[['cur',curLab+' · '+curN],['all','All · '+P.length]].map(([k,lab])=>
+    `<button class="tab${posFilter===k?' active':''}" data-k="${k}">${lab}</button>`).join('');
+  pf.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{posFilter=b.dataset.k;renderPositions();});
+  const tb=document.getElementById('postable');
+  if(posFilter==='cur' && !cur){
+    tb.innerHTML='<tr><td colspan="5" class="mut"><b>'+curLab+'</b> is a derived book — it places no trades of its own. See <b>All</b>, or the Donchian / Flush / Crashreb tabs.</td></tr>'; return; }
+  const rows=posFilter==='all'?P:P.filter(o=>o.strat===cur);
+  tb.innerHTML=rows.length?rows.map(o=>
+    `<tr><td class="mono">${o.coin}</td><td class="mono mut">${o.strat||'—'}</td><td class="mono">${o.units}</td><td class="mono">${o.entry}</td><td class="mono">${o.stop}</td></tr>`).join('')
+    :`<tr><td colspan="5" class="mut">No open positions${posFilter==='all'?' — holding cash (bear regime)':' in this book'}.</td></tr>`;
 }
 bots(); load(); setInterval(load,300000);
 </script>
