@@ -20,7 +20,7 @@ Why Oracle: its free tier is **permanent** (not a 12-month trial) and lets you p
 2. **Home region: Singapore** (or Tokyo) — pick at signup, can't change later. This is what makes Binance reachable.
 3. Create a **Compute instance**:
    - Image: **Ubuntu 22.04**.
-   - Shape: **VM.Standard.A1.Flex** (Ampere ARM — up to 4 OCPU / 24GB free) OR **VM.Standard.E2.1.Micro** (AMD, always-free). Either is plenty.
+   - Shape: **VM.Standard.A1.Flex** (Ampere ARM — Always Free = **2 OCPU / 12 GB** total, halved from 4/24 around Jun-2026) OR **VM.Standard.E2.1.Micro** (AMD, 1/8 OCPU / 1 GB, x2). Either runs the bot fine — it needs ~1 core / ~1 GB.
    - Download the **SSH private key** when prompted (you only get it once).
 4. SSH in: `ssh -i your-key.pem ubuntu@<public-ip>`
 
