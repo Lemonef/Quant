@@ -1,6 +1,6 @@
 {
   "stocks": {
-    "built_utc": "2026-06-30 04:20 UTC",
+    "built_utc": "2026-06-30 11:17 UTC",
     "data_asof": "2026-06-29",
     "n_positions": 4,
     "tickers": [
@@ -12,13 +12,13 @@
     "ok": true
   },
   "scans": {
-    "built_utc": "2026-06-30 04:20 UTC",
+    "built_utc": "2026-06-30 11:17 UTC",
     "newest_report": "2026-06-30",
     "n_reports": 27,
     "ok": true
   },
   "crypto_bot": {
-    "updated": "2026-06-30T04:20",
+    "updated": "2026-06-30T11:17",
     "regime": "bear",
     "open_positions": 0,
     "total_trades": 0,
