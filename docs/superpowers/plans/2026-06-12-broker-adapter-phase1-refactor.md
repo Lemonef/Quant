@@ -16,7 +16,7 @@
 - Create `live_bot/broker.py` — `Broker` ABC + `FillReport` dataclass + `PaperBroker`.
 - Create `live_bot/sizer.py` — `Sizer` ABC + `EqualWeightSizer`.
 - Create `live_bot/botconfig.py` — env-driven config (`LIVE`, `DRY_RUN`, `HALT`, broker/sizer selection) + `validate()`.
-- Create `live_bot/guards.py` — `bad_tick_ok()`, `data_quality_ok()`, `atomic_write_json()`.
+- Create `live_bot/guards.py` — `data_quality_ok()`, `atomic_write_json()`. (`bad_tick_ok` deferred to Phase 2 — not strat-neutral on closed 4h bars.)
 - Modify `live_bot/paper_bot.py` — route fills through the broker, sizing through the sizer, wire guards + config; strategy logic unchanged.
 - Create `requirements.txt` (root) — pinned deps.
 - Create `tests/` — `conftest.py`, `test_golden_master.py`, `test_broker.py`, `test_sizer.py`, `test_guards.py`, `test_config.py`.
@@ -60,38 +60,61 @@ ROOT = Path(__file__).resolve().parent.parent
 FIX = Path(__file__).resolve().parent / "fixtures"
 FIX.mkdir(exist_ok=True)
 
-def frozen_fetch(coin, _cache={}):
-    # deterministic: last 400 4h bars from the committed backtest CSV
+def frozen_fetch(coin, limit=400):               # honor `limit` — write_webdata calls fetch(coin, limit=...)
     df = pd.read_csv(ROOT / "backtest" / "data" / f"{coin}_4h.csv")
     df = df.rename(columns={"close":"c","high":"h","low":"l","open":"o","volume":"v"})
     df["t"] = pd.to_datetime(df[df.columns[0]], unit="ms", utc=True)
-    return df.set_index("t").tail(400)
+    return df.set_index("t").tail(limit)
 
-def run_capture(tag, out_dir):
+def isolate(pb, out_dir):
+    """Task-0.5 isolation: make a capture run touch NOTHING real (no live ledger, no network, no Telegram, deterministic time)."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    pb.fetch = frozen_fetch                       # deterministic input, honors limit
+    pb.fetch_funding = lambda sym, limit=500: []  # B3: no live HTTP inside write_webdata
+    pb.now = lambda: "2026-01-01T00:00:00+00:00"  # B1: freeze time → stable last_run + equity/csv rows + data.json.updated
+    pb.TG_TOKEN = ""; pb.TG_CHAT = ""             # B3: never send a real Telegram from a test
+    pb.HERE = out_dir                             # redirects spath/epath/web (call-time lookup)
+    pb.REGLOG = out_dir / "regime_log.csv"        # B2: these are IMPORT-TIME constants — must reassign
+    pb.TRADELOG = out_dir / "trades.csv"          # else the test appends FAKE trades to the real live ledger
+    pb.TRADEDETAIL = out_dir / "trades_detail.csv"
+
+def run_capture(out_dir):
     import importlib, sys
-    sys.path.insert(0, str(ROOT / "live_bot"))
+    if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
+    if str(ROOT / "live_bot") not in sys.path: sys.path.insert(0, str(ROOT / "live_bot"))
     import paper_bot as pb
     importlib.reload(pb)
-    pb.fetch = frozen_fetch                      # deterministic input
-    pb.HERE = out_dir; out_dir.mkdir(parents=True, exist_ok=True)
-    # redirect state + web output into out_dir
+    isolate(pb, out_dir)
     pb.cycle()
     snap = {}
     for p in sorted(out_dir.glob("state_*.json")):
         snap[p.name] = json.loads(p.read_text())
-    dj = out_dir / ".." / "web" / "data.json"
-    return snap
+    return snap                                    # data.json is DE-SCOPED from the golden master (see note)
 
 if __name__ == "__main__":
     base = FIX / "baseline_state"
     if base.exists(): shutil.rmtree(base)
-    snap = run_capture("baseline", base)
+    snap = run_capture(base)
     (FIX / "baseline_snapshot.json").write_text(json.dumps(snap, indent=2, sort_keys=True))
     print(f"baseline captured: {len(snap)} state files")
 ```
 
 Run: `python tests/capture_baseline.py`
-Expected: prints "baseline captured: 12 state files" (3 strats × 3 lev + blends), writes `tests/fixtures/baseline_snapshot.json`.
+Expected: prints "baseline captured: **9 state files**" (`trend/flush/crashreb × 1x/2x/3x`; blend/bookv2/divblend are DERIVED, no state file), writes `tests/fixtures/baseline_snapshot.json`.
+
+**De-scoped from the golden master:** `data.json` is NOT diffed — it embeds `updated`, funding-source, and live-derived tabs that can't be cleanly frozen. The state files (positions/cash/equity) are the accounting truth we protect. `data.json` correctness is a separate Phase-2 shadow concern.
+
+**Package layout (prevents ModuleNotFoundError):** also create empty `tests/__init__.py` and `live_bot/__init__.py`, and a root `conftest.py`:
+```python
+# conftest.py (repo root)
+import os, sys
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent
+for p in (ROOT, ROOT / "live_bot"):
+    if str(p) not in sys.path: sys.path.insert(0, str(p))
+for e in ("LIVE", "HALT", "DRY_RUN", "TG_TOKEN", "TG_CHAT"):   # clean env so a dev's shell can't skew tests
+    os.environ.pop(e, None)
+```
 
 - [ ] **Step 4: Golden-master test that re-runs and diffs**
 
@@ -103,7 +126,7 @@ from tests.capture_baseline import run_capture, FIX
 
 def test_outputs_identical_to_baseline(tmp_path):
     baseline = json.loads((FIX / "baseline_snapshot.json").read_text())
-    fresh = run_capture("check", tmp_path / "state")
+    fresh = run_capture(tmp_path / "state")
     # normalize floats to 8dp to ignore FP noise, then exact-diff
     def norm(o):
         if isinstance(o, float): return round(o, 8)
@@ -178,7 +201,7 @@ class Broker(ABC):
 
 class PaperBroker(Broker):
     """Reproduces the inline sim EXACTLY: buy debits units*price*(1+cost); sell credits units*price*(1-cost)."""
-    def __init__(self, cost: float = 0.0008):
+    def __init__(self, cost: float):        # REQUIRED — no default (live COST=0.0015, not 0.0008; a wrong default is a silent footgun)
         self.cost = cost
     def fill(self, side, price, units) -> FillReport:
         if side == "BUY":
@@ -412,30 +435,31 @@ git add live_bot/botconfig.py tests/test_config.py live_bot/paper_bot.py && git 
 
 ---
 
-### Task 5: Strat-neutral guards — bad-tick gate, data-quality, atomic write
+### Task 5: Strat-neutral guards — data-quality skip + atomic write ONLY
+
+**⚠️ Bad-tick price gate is DEFERRED to Phase 2 (Fable design flag).** The 25% gate is NOT strat-neutral here: flush trades >8% dumps, crashreb >5% BTC bars, and real 4h alt capitulation bars exceed ±25% — a close-to-close 25% gate would VETO the exact bars flush/crashreb monetize. The RCAT-style bad-tick gate belongs on the *live intraday fetch* (Phase 2), not on closed 4h bars. Phase 1 ships only the two genuinely strat-neutral guards below.
 
 **Files:**
 - Create: `live_bot/guards.py`
 - Test: `tests/test_guards.py`
-- Modify: `live_bot/paper_bot.py` (bar read at L427; state write; fetch handling)
+- Modify: `live_bot/paper_bot.py` (per-coin fetch handling ~L421-425; state write ~L420)
 
 - [ ] **Step 1: Write the failing tests**
 ```python
 # tests/test_guards.py
-from live_bot.guards import bad_tick_ok, data_quality_ok
+import pandas as pd, json
+from live_bot.guards import data_quality_ok, atomic_write_json
 
-def test_bad_tick_rejects_spike():
-    # a bar >25% off the prior close with no reason = bad tick
-    assert bad_tick_ok(prev_close=100.0, price=100.5) is True
-    assert bad_tick_ok(prev_close=100.0, price=140.0) is False   # +40% lone spike
-    assert bad_tick_ok(prev_close=100.0, price=60.0) is False    # -40%
+def test_data_quality_rejects_short_or_empty():
+    assert data_quality_ok(pd.DataFrame({"c": range(300)}), min_bars=250) is True
+    assert data_quality_ok(pd.DataFrame({"c": range(10)}), min_bars=250) is False
+    assert data_quality_ok(None, min_bars=250) is False
 
-def test_data_quality_rejects_short_or_stale():
-    import pandas as pd
-    good = pd.DataFrame({"c": range(300)})
-    assert data_quality_ok(good, min_bars=250) is True
-    short = pd.DataFrame({"c": range(10)})
-    assert data_quality_ok(short, min_bars=250) is False
+def test_atomic_write_is_all_or_nothing(tmp_path):
+    p = tmp_path / "s.json"
+    atomic_write_json(p, {"a": 1})
+    assert json.loads(p.read_text()) == {"a": 1}
+    assert not list(tmp_path.glob("*.tmp"))   # no temp litter left
 ```
 
 - [ ] **Step 2: Run to verify it fails**
@@ -448,13 +472,8 @@ Expected: FAIL — module missing.
 # live_bot/guards.py
 import json, os, tempfile
 
-def bad_tick_ok(prev_close: float, price: float, max_dev: float = 0.25) -> bool:
-    """False if price deviates > max_dev from prior close (likely a bad intraday tick — the RCAT $14.98 bug)."""
-    if prev_close <= 0: return True
-    return abs(price / prev_close - 1) <= max_dev
-
 def data_quality_ok(df, min_bars: int = 250) -> bool:
-    """False if the fetched frame is too short/empty to compute MA200 etc. → skip, don't trade on bad data."""
+    """False if the fetched frame is None/too short to compute MA200 etc. → skip the coin, don't trade on bad data."""
     return df is not None and len(df) >= min_bars
 
 def atomic_write_json(path, obj) -> None:
@@ -465,26 +484,32 @@ def atomic_write_json(path, obj) -> None:
         json.dump(obj, f, indent=2)
     os.replace(tmp, path)
 ```
+(No `bad_tick_ok` — deferred to Phase 2 as an intraday-read guard.)
 
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `pytest tests/test_guards.py -v`
 Expected: PASS.
 
-- [ ] **Step 5: Wire guards into `paper_bot.py`**
+- [ ] **Step 5: Wire the data-quality skip — MUST mirror the existing fetch-fail branch exactly (keep cash in totals)**
 
-- After `df=fetch(c)` per coin, add: `if not data_quality_ok(df, MA_LEN): print(f"{c}: data-quality skip"); [totals[a].__iadd__... ]; continue` (skip the coin, keep its cash — mirror the existing fetch-fail branch).
-- In the bar read (L427 area), before computing signals, gate the price: `if not bad_tick_ok(df.c.iloc[i-1], price): print(f"{c}: bad-tick skip {price}"); continue` (skip acting on a glitch bar).
-- Replace the state write (`spath(a).write_text(json.dumps(states[a],indent=2))` at L420) with `atomic_write_json(spath(a), states[a])`.
+The existing fetch-fail branch (L421-425) does: `print fail; for a in accts: totals[a]+=states[a]["coins"][c]["cash"]; continue`. The data-quality skip must do the SAME accounting (add each account's cash for this coin, then `continue`) — a bare `continue` would drop the coin's value from totals = a real equity bug. After `atr,adx,ma,donHi,donLo=indicators(df); i=len(df)-2` succeeds, guard the frame right after `df=fetch(c)`:
+```python
+        if not data_quality_ok(df, MA_LEN):
+            print(f"{c}: data-quality skip (short/empty frame)")
+            for a in accts: totals[a]+=states[a]["coins"][c]["cash"]
+            continue
+```
+Then replace the state write (`spath(a).write_text(json.dumps(states[a],indent=2))` at L420) with `atomic_write_json(spath(a), states[a])`.
 
-- [ ] **Step 6: Golden master — clean historical data has no bad ticks/short frames → identical**
+- [ ] **Step 6: Golden master — clean fixtures are all ≥400 bars → skip never fires → identical**
 
 Run: `pytest tests/ -v`
-Expected: PASS (all, including golden master byte-identical — guards are invisible on clean data).
+Expected: PASS (all; golden master byte-identical — data-quality skip is invisible when frames are healthy, atomic write produces the same bytes).
 
 - [ ] **Step 7: Commit**
 ```bash
-git add live_bot/guards.py tests/test_guards.py live_bot/paper_bot.py && git commit -m "feat: strat-neutral guards (bad-tick gate, data-quality skip, atomic state write)"
+git add live_bot/guards.py tests/test_guards.py live_bot/paper_bot.py && git commit -m "feat: strat-neutral guards (data-quality skip mirrors fetch-fail, atomic state write); bad-tick gate deferred to Phase 2"
 ```
 
 ---
@@ -499,7 +524,7 @@ git add live_bot/guards.py tests/test_guards.py live_bot/paper_bot.py && git com
 ```python
 def test_fill_tags_risk_side():
     from live_bot.broker import PaperBroker
-    b = PaperBroker()
+    b = PaperBroker(cost=0.0008)
     assert b.fill("BUY", 100.0, 1.0).risk_side == "increasing"
     assert b.fill("SELL", 100.0, 1.0).risk_side == "reducing"
 ```
@@ -532,6 +557,8 @@ git add live_bot/broker.py tests/test_broker.py && git commit -m "feat: tag fill
 - LiveBroker + real-money layer explicitly NOT present (Phase 2).
 - The live daily routine keeps running paper exactly as before.
 
-## Self-review notes
-- Spec coverage: this plan covers spec sections "Architecture" (Broker/Sizer), the strat-neutral subset of "Failure modes & guards" (bad-tick, data-quality, atomic write, closed-bar already at i=-2, HALT, config-validation), and "Migration / correctness" (golden master). Live-only guards (idempotency, reconcile, staleness collar, execution ledger, HALT state machine, resting stops) are explicitly deferred to the Phase-2 plan — NOT gaps.
-- Golden-master feasibility risk: capturing baseline requires monkeypatching `fetch` + redirecting `HERE`/state paths; if the bot hardcodes paths in a way that resists redirection, Task 0 Step 3 must first parameterize those (add a tiny task). Flagged for the executor.
+## Self-review notes (Fable plan-review folded in — 6 blockers fixed)
+- Spec coverage: covers "Architecture" (Broker/Sizer), the genuinely strat-neutral subset of "Failure modes & guards" (data-quality skip, atomic write, closed-bar already at i=-2, HALT, config-validation), and "Migration / correctness" (golden master on the 9 state files). DEFERRED to Phase 2 (NOT gaps): the bad-tick price gate (not strat-neutral on closed 4h bars — belongs on the live intraday read), idempotency, reconcile-or-halt, staleness collar, execution ledger, HALT state machine, resting stops, `data.json` fidelity.
+- **Fable-review blockers resolved:** B1 freeze `now()` (kills the `last_run` nondeterminism), B2 reassign import-time `REGLOG`/`TRADELOG`/`TRADEDETAIL` in `isolate()` (else tests corrupt the live ledger), B3 stub `fetch_funding` + blank `TG_TOKEN/CHAT` (no live HTTP/Telegram from tests), B4 `__init__.py` + root `conftest.py` with sys.path + env-clear, B5 de-scope `data.json` from the golden master + `frozen_fetch(limit=...)`, B6 data-quality skip mirrors the fetch-fail cash accounting (no equity drop) + bad-tick gate removed from Phase 1.
+- Wording: "byte-identical" = 8-decimal-identical (the `norm()` rounding absorbs ≤1-ulp FP from re-ordered arithmetic); a 1-ulp diff is NOT a regression.
+- Expected state-file count = **9** (trend/flush/crashreb × 1x/2x/3x); blends are derived.
