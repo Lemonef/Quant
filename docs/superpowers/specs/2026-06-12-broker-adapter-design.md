@@ -164,3 +164,16 @@ LiveBroker runs in dry-run alongside the paper bot for weeks, logging intended o
 - `ConcentratedSizer` / `RiskPctSizer` (deploy-idle-cash lever) — add after paper validates a sizing change.
 - Real Binance API keys + funding — after shadow + gauntlet pass.
 - Any leverage/margin — would be a new Broker impl + fresh review, never a flag.
+
+## YOUR real-money runbook (human steps, when the day comes)
+1. Don't rush — only after the gauntlet clears (3-6mo paper + one regime flip survived live) AND shadow passed.
+2. Fund small — barbell money only; a tiny slice for the first real weeks.
+3. THB → Binance TH (Gulf Binance): KYC, deposit THB → convert to USDT.
+4. 🔑 API key WITHDRAW DISABLED, trade+read only, no margin (#1 rule).
+5. Keys → GitHub Actions secrets (BINANCE_KEY/BINANCE_SECRET), never in code.
+6. Telegram (BotFather) token+chat id → heartbeat + halt alerts to phone.
+7. Shadow mode weeks — confirm fills/slippage match, 0 reconcile mismatches.
+8. Flip LIVE deliberately — separate dated commit (LIVE=true, DRY_RUN=false) after go-live checklist all green.
+9. Babysit daily early — heartbeat + positions match.
+10. Scale slowly — add money only after live ≈ paper holds.
+11. Off-switches: HALT flag → flatten.py → delete API key (nuclear).
