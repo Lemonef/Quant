@@ -44,6 +44,18 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
 - Cohort correlation audit in the weekly review: which held names crash together,
   single-event exposure, concentration score (the June defense-cohort de-rate would
   have flagged). _Provenance: viral prompt list (portfolio exposure audit)._
+- Deep-dive fundamentals upgrades from the family investing lessons (brain:
+  `atoms/investing-lessons-family-2026-07.md`): explicit 10-year revenue-path math in
+  the verdict ("would the price still make sense at credible-growth revenue");
+  earnings-quality row (GAAP/revenue-recognition/by-function-vs-nature red flags);
+  SG&A trend + FCF-vs-net-income divergence rows; liquidity row (current ratio, cash
+  cycle); YoY base-effect flag (which quarter drives the jump); unit-economics-vs-
+  peers row; margin-risk taxonomy (cost-push/demand-pull, cost overrun, realized-
+  price-below-forecast); BOI tax check for Thai names. _Provenance: family investor
+  lesson, 2026-07-14._
+- Factory zoo candidate from the same lessons: "open ≈ close → don't buy" (doji/
+  indecision) — testable within the existing candle-shape family, adopted only if it
+  survives. _Provenance: family investor lesson._
 
 ## Go-live gate (before real money, any asset class)
 - Execution-quality checklist: spreads, slippage, order types, fee totals, fill-price
