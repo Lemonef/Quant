@@ -63,6 +63,12 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
   −50% final quarter = three strong quarters hiding); company capex-timeline read
   (weak quarter may be money-not-deployed-yet); capital-allocation structure read.
   _Provenance: family investor lesson (clarified 2026-07-14)._
+- **Composite fundamental scores as pre-screen factors: Piotroski F-Score, Beneish
+  M-Score (manipulation), Altman Z-Score (bankruptcy distance)** — computable from
+  free fundamentals (EDGAR/yfinance), backtestable under factory rules; the
+  systematic form of the statement-analysis checks. Full catalog of statement
+  gap-finding checks: brain `atoms/financial-statement-insight-playbook.md`.
+  _Provenance: settled forensic-accounting canon, prompted by family lessons._
 
 ## Go-live gate (before real money, any asset class)
 - Execution-quality checklist: spreads, slippage, order types, fee totals, fill-price
