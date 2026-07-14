@@ -4,6 +4,12 @@ Items collected during the 2026-07 upgrade research sweep. Each entry keeps its
 provenance so it can be traced back. Nothing here is adopted without passing the same
 bar as everything else: tested / measured before promotion.
 
+**Strip-mining rule:** no source is rejected wholesale. Every source is mined for
+usable parts first; the rejected list records only the remainder, and salvaged parts
+are noted where they landed. (Second-pass salvage 2026-07-14: survivorship-bias
+handling → spec; Markov regime-switching + FRED macro factors → below; GS-Quant
+timeseries as metric reference → spec.)
+
 Active project: **Alpha Factory** — see
 `docs/superpowers/specs/2026-07-14-alpha-factory-design.md`. Absorbed into that design
 (not listed below): Alpha158/Jansen factor families, Kalman spread factors, GARCH-style
@@ -14,6 +20,12 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
 - Cross-sectional ML ranker (LightGBM-style, scikit-learn) trained on the factory's
   factor panel; evaluated under the same purged walk-forward + FDR rules.
   _Provenance: Qlib workflow, Machine-Learning-for-Trading (Jansen)._
+- Markov regime-switching model as a regime-filter challenger to the SMA-based
+  regime A/B currently live-tested; evaluate under factory rules. _Provenance:
+  Financial-Models / Computational-Finance repos (second-pass salvage)._
+- Macro overlay factors from FRED (DXY, rates, credit spreads) as regime features
+  for the crypto book. Free data. _Provenance: "Bridgewater macro" prompt
+  (second-pass salvage of its inputs, not its LLM-dashboard form)._
 
 ## Phase 3 — stock side (spike-hunter)
 - Stock daily-OHLCV panel through the same factory harness → systematic pre-screen
@@ -51,16 +63,29 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
   bundle — its three ingredients are already factor families in the factory zoo
   (trend, oscillator, volume); the factory evaluates the combination honestly.
 
-## Free data sources (the "Bloomberg for free" answer)
+## Free data sources (the "Bloomberg for free" answer — researched 2026-07)
 - **OpenBB** (open-source terminal) — the closest free Bloomberg-alike; aggregates
   most sources below behind one Python API/CLI.
-- Crypto: Binance public API (in use), CoinGecko free tier.
-- Stock EOD prices: yfinance (in use in tools/), Stooq CSV.
+- Crypto prices/funding: **Binance public API** (in use — still the primary; free and
+  deep). Aggregators: CoinGecko demo tier (10k calls/mo, includes derivatives
+  tickers with funding + open interest), CryptoDataDownload (free historical CSVs,
+  non-commercial license).
+- Crypto derivatives analytics: **Coinalyze** and **CoinGlass** — open interest,
+  funding history, liquidations across exchanges (free web/limited API). New factor
+  inputs: OI-based and liquidation-based factors → candidate zoo family (phase 2).
+- Stock EOD prices: yfinance (in use; unofficial — breaks/rate-limits occasionally,
+  keep Stooq CSV as fallback), Polygon free tier (1y EOD history).
+- Broad free API tiers (2026): **Twelve Data** ~800 req/day (most generous),
+  **Finnhub** ~60/min incl. free WebSocket quotes AND congressional-trading data
+  (extra source for the spike-hunter's gov/insider row), Alpha Vantage ~25 req/day.
 - Filings/fundamentals: SEC EDGAR (free, canonical), stockanalysis.com (in use),
-  Financial Modeling Prep / Finnhub / Alpha Vantage free tiers (rate-limited).
-- Macro: FRED (Federal Reserve, free).
-- Insider/government: OpenInsider, QuiverQuant (both already in the spike-hunter).
+  Financial Modeling Prep free tier.
+- Macro: FRED (Federal Reserve, free) — feeds the macro-overlay factor idea above.
+- Insider/government: OpenInsider, QuiverQuant (both already in the spike-hunter),
+  plus Finnhub congressional trading as cross-check.
 - Real Bloomberg: only via a university finance-lab terminal (on-site export).
+- Licensing note: several free tiers are non-commercial (CoinMarketCap,
+  CryptoDataDownload CSVs) — fine for personal research, check before any product use.
 
 ## Explicitly rejected (with reason, so they stay rejected)
 - LLM-imagined backtests ("Two Sigma simulator" prompt): fabricated numbers; the real

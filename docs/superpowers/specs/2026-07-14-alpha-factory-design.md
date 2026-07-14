@@ -58,6 +58,12 @@ tests/              # synthetic-data validation of the harness itself
   liquid Binance USDT pairs (N is one named config constant). Prior finding: expanding
   10→20 coins lifted OOS Sharpe 0.61→0.91 and saturated ~15-20; the wider panel gives
   the cross-sectional factors more breadth.
+- **Survivorship-bias handling (required)**: selecting today's top-N coins excludes
+  coins that died, inflating results. Mitigation: select the universe by liquidity as
+  of the *start* of the evaluation window where the data allows (point-in-time
+  selection); where it does not, the report must carry an explicit survivorship-bias
+  caveat on every affected metric. The same rule applies verbatim to the phase-3 stock
+  panel (delisted names).
 
 ### zoo.py — factor library
 
@@ -97,6 +103,8 @@ For each factor, on the daily panel:
 
 ### stats.py — anti-fooling layer
 
+- Metric formulas (returns, vol, drawdown, Sharpe) cross-checked against the open
+  GS-Quant `timeseries` module as a reference implementation.
 - **Deflated Sharpe ratio** per factor given the number of trials in the run.
 - **FDR control (Benjamini-Hochberg)** across the entire zoo's OOS results.
 - Survival requires ALL of: passes FDR at the configured rate, positive OOS result in
