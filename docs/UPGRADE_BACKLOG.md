@@ -45,9 +45,22 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
 - Awesome-Quant: link index only — the place to look when hunting for a library or
   reference on a specific quant topic; nothing to build from directly.
 
-## Unresolved (needs clarification from the owner)
-- "RSI + Alchemist" — unidentified reference (an indicator? a TradingView script?).
-  Clarify and triage; plain RSI-family factors are already in the factory zoo.
+## Resolved references
+- "RSI + Alchemist" = "The Alchemist's Trend" (TradingView indicator, wjdtks255):
+  trend-condition labels + RSI 30-70 context + volume confirmation. Not adopted as a
+  bundle — its three ingredients are already factor families in the factory zoo
+  (trend, oscillator, volume); the factory evaluates the combination honestly.
+
+## Free data sources (the "Bloomberg for free" answer)
+- **OpenBB** (open-source terminal) — the closest free Bloomberg-alike; aggregates
+  most sources below behind one Python API/CLI.
+- Crypto: Binance public API (in use), CoinGecko free tier.
+- Stock EOD prices: yfinance (in use in tools/), Stooq CSV.
+- Filings/fundamentals: SEC EDGAR (free, canonical), stockanalysis.com (in use),
+  Financial Modeling Prep / Finnhub / Alpha Vantage free tiers (rate-limited).
+- Macro: FRED (Federal Reserve, free).
+- Insider/government: OpenInsider, QuiverQuant (both already in the spike-hunter).
+- Real Bloomberg: only via a university finance-lab terminal (on-site export).
 
 ## Explicitly rejected (with reason, so they stay rejected)
 - LLM-imagined backtests ("Two Sigma simulator" prompt): fabricated numbers; the real
