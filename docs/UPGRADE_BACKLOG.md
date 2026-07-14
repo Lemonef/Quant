@@ -75,6 +75,19 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
   tracking vs quote at order time. _Provenance: "Jane Street microstructure" prompt —
   the one keeper of that batch._
 
+## Someday/maybe — named so it stays a deliberate choice
+- **Slow value book** (Buffett-style second book: hard-to-kill businesses at a
+  margin-of-safety discount, multi-year holds; no catalysts required). Deliberately
+  NOT started 2026-07: different animal from spike-hunting; revisit when real capital
+  is deployed and the verdict ledger (≥50 resolved) shows which judgments to trust.
+  The margin-of-safety discipline itself ships NOW inside the spike verdicts instead.
+  _Provenance: family investing lessons._
+- **Spike-hunter skill upgrade delivery path** (when phase-3 rows ship): the daily
+  routine reads `skills/stock-analysis-SKILL.md` from the brain → implement by
+  editing the skill file + the locked report-format doc; validate with an A/B
+  deep-dive on one sample ticker (old vs new checklist) before committing. No
+  cloud-routine prompt edit needed.
+
 ## Infra / cosmetic (independent projects)
 - Dashboard UI glow-up for the web pages; reference aesthetics: linear.app, notion,
   vercel, sodaven.com, storytelling.noomoagency.com, harmony. Use installed design
