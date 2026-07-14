@@ -112,6 +112,18 @@ For each factor, on the daily panel:
   every fold, decay horizon above the minimum useful holding period, and
   turnover-adjusted economics that survive costs.
 
+### Improvement gate vs the incumbent book (required)
+
+Statistical survival is necessary but not sufficient. Every survivor is additionally
+measured against the existing book:
+
+1. **Correlation to each incumbent sleeve** (the 5 `alphas.py` alphas) — a survivor
+   highly correlated to an existing sleeve is flagged REDUNDANT, not an improvement.
+2. **Ensemble delta**: OOS metrics of the incumbent ensemble (inverse-vol weights, as
+   in `alphas.py`) WITH the survivor added vs WITHOUT it. The report states
+   `IMPROVES BOOK: yes/no (ΔOOS Sharpe, ΔmaxDD)`. Only survivors with a positive
+   ensemble delta are promotion candidates.
+
 ### report.py + CLI
 
 `python backtest/alpha_factory.py` runs panel → zoo → evaluate → stats and writes
