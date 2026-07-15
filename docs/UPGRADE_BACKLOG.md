@@ -33,6 +33,21 @@ scoreboard, GBM synthetic-data harness tests, universe expansion.
   survivor before any promotion. Reference: brain `skills/backtest-validation-SKILL.md`
   § QUEUED TECHNIQUES.
 
+## Perfect model research (named project — Zen, 2026-07-15)
+Goal as stated: a model that enters near the exact swing low and exits/shorts near the
+exact swing high. State of the art: turning-point prediction is a real published line of
+work — zigzag/extrema labeling, triple-barrier + meta-labeling (López de Prado,
+*Advances in Financial Machine Learning*), peak/trough classifiers — but all of it
+predicts local extrema probabilistically; sustained near-exact top/bottom timing net of
+costs is not an established result. Extrema labels are scarce and noisy, so this design
+has the highest overfit risk of anything in the backlog (acknowledged up front).
+Implementation route: build ON the phase-2 ML ranker infrastructure — extrema /
+triple-barrier labels over the factory factor panel, class-imbalance handling,
+meta-label entry filter — and judge it under the full factory gate set (purged
+walk-forward, pooled FDR, deflated Sharpe, improvement-vs-book). **Trigger: starts after
+the multi-speed factory iteration and the factory-v2 statistics queue land; it is the
+flagship phase-2 experiment, not a separate system.**
+
 ## Phase 2 — ML ranker (queued behind Alpha Factory)
 - Cross-sectional ML ranker (LightGBM-style, scikit-learn) trained on the factory's
   factor panel; evaluated under the same purged walk-forward + FDR rules.
