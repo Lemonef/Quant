@@ -8,7 +8,7 @@ paper-bot CI rebuilds it every cycle (never stale).
 
     python web/gen_scans.py   ->  web/scans.html
 
-Brain path resolution: $SECOND_BRAIN env -> D:/second-brain -> ../second-brain -> ./second-brain
+Brain path resolution: $SECOND_BRAIN env -> ~/SecondBrain -> D:/second-brain -> ../second-brain -> ./second-brain
 """
 import json, os, re, datetime, html as _html
 from pathlib import Path
@@ -20,7 +20,7 @@ except ImportError:
 
 
 def find_brain():
-    cands = [os.environ.get("SECOND_BRAIN"), r"D:/second-brain", "../second-brain", "./second-brain"]
+    cands = [os.environ.get("SECOND_BRAIN"), os.path.expanduser("~/SecondBrain"), r"D:/second-brain", "../second-brain", "./second-brain"]
     for c in cands:
         if c and (Path(c) / "research" / "scans").is_dir():
             return Path(c)

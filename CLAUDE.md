@@ -3,6 +3,10 @@
 Automated trading strategy R&D. Owner: Zen (19, Thai uni student). Capital ~$2,800
 (100k Baht). Goal: 20M Baht by early 30s. Fully automated only. High risk tolerance.
 
+## Setup (new machine)
+- **Venv:** `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` at repo root.
+- **`SECOND_BRAIN` env var:** `export SECOND_BRAIN=~/SecondBrain` — required by the `web/` generators to locate the second-brain vault.
+
 ## Infrastructure
 - **TradingView** paper trading (Gold/SOL, Trend Meter Long Only).
 - **MT5 Demo** (Exness) for XAUUSD.
@@ -127,4 +131,4 @@ If `agent-chat.md` exists at the root of the active workspace:
 1. **Collaboration is Active:** You are running in a 3-agent session (Gemini IDE + Claude CLI + Codex).
 2. **Auto-Scan:** Read `agent-chat.md` on startup and check it frequently for updates or requests.
 3. **Respect Locks:** Always check the `Locks:` block in `agent-chat.md` before editing any file. Do not edit a file locked by another agent.
-4. **Log Progress:** When you take a task, perform edits, or complete a work unit, post your status and locks to `agent-chat.md` using `python D:\second-brain\tools\agent_bridge.py` or editing the file directly.
+4. **Log Progress:** When you take a task, perform edits, or complete a work unit, post your status and locks to `agent-chat.md` using `python "$SECOND_BRAIN/tools/agent_bridge.py"` or editing the file directly.

@@ -7,7 +7,7 @@ Prices via yfinance (accurate close, not the routine's intraday bad-ticks).
 
     python web/gen_stocks.py   ->  web/stocks.html
 
-Brain path resolution order: $SECOND_BRAIN env -> D:/second-brain -> ../second-brain -> ./second-brain
+Brain path resolution order: $SECOND_BRAIN env -> ~/SecondBrain -> D:/second-brain -> ../second-brain -> ./second-brain
 (so it works locally AND in a CI job that clones the brain alongside this repo).
 """
 import json, os, re, datetime
@@ -20,7 +20,7 @@ except ImportError:
 
 
 def find_brain():
-    cands = [os.environ.get("SECOND_BRAIN"), r"D:/second-brain", "../second-brain", "./second-brain"]
+    cands = [os.environ.get("SECOND_BRAIN"), os.path.expanduser("~/SecondBrain"), r"D:/second-brain", "../second-brain", "./second-brain"]
     for c in cands:
         if c and (Path(c) / "memory" / "paper-trades.md").exists():
             return Path(c)
