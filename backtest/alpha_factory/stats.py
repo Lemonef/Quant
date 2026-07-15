@@ -9,7 +9,7 @@ N = NormalDist()
 
 def ic_pvalue(ic_mean, ic_std_daily, n_days):
     """Two-sided p for mean daily IC != 0 (normal approx of the t-stat)."""
-    if ic_std_daily <= 0 or n_days < 2:
+    if not (ic_std_daily > 0) or n_days < 2:   # not-> also catches NaN std (e.g. a 1-obs IC series)
         return 1.0
     t = ic_mean / ic_std_daily * math.sqrt(n_days)
     return 2 * (1 - N.cdf(abs(t)))
@@ -48,16 +48,19 @@ def deflated_sharpe_prob(sr_annual, n_days, dpy, skew, kurt_excess, n_trials):
 
 
 def verdict(row, cfg):
-    """row keys: n_days, pval_pass, fold_sharpes, ic_1, ic_decay, dsr_prob."""
+    """row keys: n_days, pval_pass, fold_sharpes, ic_base, ic_decay, dsr_prob."""
     if row["n_days"] < cfg.MIN_OBS_DAYS:
         return "REJECTED", f"too few observations ({row['n_days']})"
     if not row["pval_pass"]:
         return "REJECTED", "failed FDR"
     if min(row["fold_sharpes"]) <= 0:
         return "REJECTED", "negative OOS fold"
-    same_sign = row["ic_1"] * row["ic_decay"] > 0
-    if not (same_sign and abs(row["ic_decay"]) >= cfg.DECAY_MIN_RATIO * abs(row["ic_1"])):
-        return "REJECTED", "signal decays too fast"
+    # decay gate: signal must still be alive at the next-higher horizon. None => no higher
+    # horizon exists (traded at the max speed), so nothing to decay into — gate passes.
+    if row["ic_decay"] is not None:
+        same_sign = row["ic_base"] * row["ic_decay"] > 0
+        if not (same_sign and abs(row["ic_decay"]) >= cfg.DECAY_MIN_RATIO * abs(row["ic_base"])):
+            return "REJECTED", "signal decays too fast"
     if row["dsr_prob"] < cfg.DSR_MIN_PROB:
         return "REJECTED", f"deflated Sharpe prob {row['dsr_prob']:.2f}"
     return "SURVIVED", "passed FDR + all folds + decay + DSR"

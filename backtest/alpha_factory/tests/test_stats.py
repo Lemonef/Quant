@@ -51,12 +51,15 @@ def test_verdict_reasons():
     from alpha_factory.stats import verdict
     from alpha_factory import config as cfg
     good = dict(n_days=900, pval_pass=True, fold_sharpes=[1.0, 0.8, 1.2, 0.6],
-                ic_1=0.05, ic_decay=0.03, dsr_prob=0.9)
+                ic_base=0.05, ic_decay=0.03, dsr_prob=0.9)
     v, r = verdict(good, cfg)
     assert v == "SURVIVED"
     bad = dict(good, fold_sharpes=[1.0, -0.1, 1.2, 0.6])
     v, r = verdict(bad, cfg)
     assert v == "REJECTED" and "fold" in r
-    fast = dict(good, ic_decay=0.001)
+    fast = dict(good, ic_decay=0.001)   # R=1: dies before it can be traded slower
     v, r = verdict(fast, cfg)
     assert v == "REJECTED" and "decay" in r
+    top = dict(good, ic_decay=None)     # traded at the top speed: no higher horizon to decay into
+    v, r = verdict(top, cfg)
+    assert v == "SURVIVED"
