@@ -17,13 +17,17 @@ vol-regime factors, Williams VIX Fix capitulation family, IC/ICIR + signal-decay
 scoreboard, GBM synthetic-data harness tests, universe expansion.
 
 ## Factory iteration queue (from run findings)
-- **Rebalance-frequency variant (from run 2026-07-15):** first full run — 77/102
-  factors pass FDR (low-vol/liquidity IC ≈ 0.07, ICIR > 8) but ALL die on
-  every-fold-positive net of DAILY-rebalance costs, while their IC at 5d exceeds
-  IC at 1d (slow signals bled by fast trading). Next iteration: evaluate each factor
-  at weekly (and monthly) rebalance in addition to daily, with `n_trials` scaled by
-  the number of variants so the deflated-Sharpe stays honest. A factor must still
-  pass every gate at its chosen speed.
+- ✅ **Rebalance-frequency variant — DONE 2026-07-15 (commit 8ab6caf).** Every factor
+  now judged at 1d/5d/20d (p-value from the traded-horizon IC with overlap correction,
+  pooled BH-FDR across all factor×speed rows, n_trials ×3 in the deflated Sharpe).
+  Result on the expanded 22-pair universe (crypto + PAXG gold + EURUSDT): **0 survivors
+  at any speed.** Slower trading cuts cost-death rejections 66→25→19 and lifts median
+  family Sharpes by up to +2.5 (seasonality −2.36 → +0.11), but the freed signals
+  plateau at ≈0 — every FDR-passer keeps at least one negative OOS fold (best −0.11).
+  Consistent with the brain's hard constraint: cross-sectional directional entries ≈
+  random; the edge remains regime + diversification + carry. Scoreboard:
+  `backtest_results/ALPHA_FACTORY_2026-07-15-speeds.{md,csv}` (daily-only baseline kept
+  at `ALPHA_FACTORY_2026-07-15.{md,csv}`).
 - pandas `pct_change` FutureWarning cleanup (`fill_method=None` where series are
   contiguous) — cosmetic, verify results unchanged before/after.
 - Factory v2 statistics (queued 2026-07-15, from the techniques survey; build in this
