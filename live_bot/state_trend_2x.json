@@ -9,7 +9,7 @@
       "held": 0,
       "size": 0.0,
       "trough": 61306.84,
-      "bars": 66
+      "bars": 67
     },
     "ETHUSDT": {
       "cash": -294.172410716528,
@@ -19,8 +19,8 @@
       "peak": 1946.52,
       "held": 0,
       "size": 0.0,
-      "trough": 1862.57,
-      "bars": 7
+      "trough": 1857.54,
+      "bars": 8
     },
     "SOLUSDT": {
       "cash": 500.0,
@@ -40,7 +40,7 @@
       "held": 0,
       "size": 0.0,
       "trough": 560.4,
-      "bars": 62
+      "bars": 63
     },
     "XRPUSDT": {
       "cash": 500.0,
@@ -79,8 +79,8 @@
       "peak": 8.633,
       "held": 0,
       "size": 0.0,
-      "trough": 8.328,
-      "bars": 8
+      "trough": 8.304,
+      "bars": 9
     },
     "LTCUSDT": {
       "cash": 500.0,
@@ -154,7 +154,7 @@
       "held": 0,
       "size": 0.0,
       "trough": 3.37,
-      "bars": 40
+      "bars": 41
     },
     "ETCUSDT": {
       "cash": 500.0,
@@ -193,6 +193,6 @@
       "size": 0.0
     }
   },
-  "last_run": "2026-07-16T21:12:34.018264+00:00",
-  "equity": 9942.0
+  "last_run": "2026-07-17T03:31:18.764232+00:00",
+  "equity": 9908.83
 }
