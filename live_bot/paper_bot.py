@@ -354,10 +354,13 @@ def write_webdata(totals, states, btc_ok=True):
     except Exception:
         pass
     # Funding / Carry ★ — delta-neutral perp funding harvest (the real retail edge; ~8-20% APY, low DD).
-    # REAL Binance funding history (8h). Delta-neutral (long spot + short perp on the paying side) => price PnL ~0,
-    # you collect funding. Leverage is RELATIVELY sane here (market-neutral) so 3x = high-octane yield, not directional blow-up.
-    # OPTIMISTIC/gross: assumes you always sit on the paying side, minus a small rebalance cost. block() annualization is
-    # wrong for 8h periods, so stats computed here at 3 periods/day.
+    # REAL Binance funding history (8h). Delta-neutral (long spot + short perp) => price PnL ~0, you collect funding.
+    # Leverage is RELATIVELY sane here (market-neutral) so 3x = high-octane yield, not directional blow-up.
+    # HONEST SIM (2026-07-17 fix — the old version took abs(funding) every period = teleporting to the paying
+    # side for free, which overstates carry in a low/sign-flipping regime): the position is long-spot/short-perp
+    # or FLAT, the side is decided from TRAILING funding only (no lookahead), surprise negative periods are PAID,
+    # and every state change costs two legs (spot + perp) at the same COST used everywhere else.
+    # block() annualization is wrong for 8h periods, so stats computed here at 3 periods/day.
     def fund_block(key,ser,eqf,L):
         ev=[s[1] for s in ser]; mdd=0.0; pk=ev[0] if ev else START
         for v in ev: pk=max(pk,v); mdd=min(mdd,v/pk-1)
@@ -371,15 +374,25 @@ def write_webdata(totals, states, btc_ok=True):
                 "wr":round(float((rr>0).mean()*100),1) if len(rr) else 0.0,"pf":0.0,"trades":0,
                 "derived":True,"series":ser}
     try:
-        fb=fetch_funding("BTCUSDT",1000); fe=dict(fetch_funding("ETHUSDT",1000)); fcost=0.000002  # amortized entry/exit spread (one-time, tiny per 8h)
+        fb=fetch_funding("BTCUSDT",1000); fe=dict(fetch_funding("ETHUSDT",1000))
+        SWITCH_COST=2*COST      # enter/exit = spot leg + perp leg, same per-leg cost as the rest of the bot
+        TRAIL_N=21              # decision window: 7 days x 3 periods — trailing only, no lookahead
+        BAND=0.00003            # hysteresis: enter when trailing funding annualizes above ~+3% (0.00003*3*365),
+                                # exit below ~-3%; hold in between (flipping on every sign change churns SWITCH_COST to death)
         if len(fb)>=60:
             fl=[]
             for L in LEVELS:
-                eqf=START; ser=[]
+                eqf=START; ser=[]; hist=[]; pos=0
                 for t,rbt in fb:
-                    rate=(abs(rbt)+abs(fe.get(t,rbt)))/2.0          # capture funding on the paying side
-                    gate=1.0 if rate>=0.00005 else 0.3              # gated: size UP when funding frothy, mostly cash when calm
-                    eqf*=(1+L*gate*(rate-fcost))
+                    ret=fe.get(t,rbt)
+                    w=hist[-TRAIL_N:]; sig=sum(w)/len(w) if w else 0.0
+                    want=pos
+                    if pos==0 and sig>BAND: want=1
+                    elif pos==1 and sig<-BAND: want=0
+                    gate=1.0 if sig>=0.00005 else 0.3               # size up when funding frothy (trailing, not current)
+                    pnl=want*gate*(rbt+ret)/2.0 - (SWITCH_COST if want!=pos else 0.0)
+                    eqf*=(1+L*pnl)
+                    pos=want; hist.append((rbt+ret)/2.0)
                     ser.append([datetime.fromtimestamp(t/1000,timezone.utc).isoformat()[:16],round(eqf,2)])
                 fl.append(fund_block(f"funding_{L}x",ser,eqf,L))
             tabs.append({"name":"Funding / Carry ★ (delta-neutral, real edge)","levels":fl})
