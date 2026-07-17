@@ -78,7 +78,15 @@ discipline like everything else. Same trigger as the perfect-model work.
   = vol-dampening/pinning regime, net negative = move-amplifying regime; computable from
   public OI+Greeks) and expiry-lifecycle flows (charm/vanna decay near large expiries =
   the mechanism behind max-pain drift). Greeks as TRADED instruments stay rejected (no
-  options book, theta never bites a non-holder). All judged under
+  options book, theta never bites a non-holder). FULL STRATEGY-ZOO STRIP-MINE (Zen
+  2026-07-17 — every structure: trade rejected, information kept): implied-probability
+  DENSITY from butterfly prices across strikes (Breeden-Litzenberger — the market's full
+  map of where price lands by expiry; the family's most information-rich item) ·
+  25-delta risk-reversal skew (crash-fear vs upside-greed dial) · IV term-structure
+  slope from calendars (WHEN the market expects action; inversion = stress) · iron-condor
+  range-probability · OI strike walls (magnet/barrier levels — the mechanism under
+  max-pain) · DVOL percentile (Deribit crypto-VIX). Covered-call/collar = variance
+  premium again, nothing new. All judged under
   factory gates like any factor. This is genuinely NEW information (positioning + fear), unlike
   price-derived indicators.
 - **Multi-pair stat-arb (colleague claims ~9%/wk) — TESTED-DEAD here, claim needs evidence.**
