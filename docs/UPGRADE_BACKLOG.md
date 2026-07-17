@@ -73,7 +73,12 @@ discipline like everything else. Same trigger as the perfect-model work.
   Coinalyze: max-pain, per-expiry notional). Candidate zoo factors: implied-vol level/percentile
   (fear gauge), put-skew (crash insurance demand), put/call OI ratio, IV-vs-realized spread
   (variance premium), distance-to-max-pain into major expiries (pin-risk hypothesis — evidence
-  in equities is weak/mixed; treat as hypothesis, not lore), post-expiry drift. All judged under
+  in equities is weak/mixed; treat as hypothesis, not lore), post-expiry drift, and
+  GREEKS-DERIVED positioning (Zen 2026-07-17): dealer GAMMA EXPOSURE (GEX — net positive
+  = vol-dampening/pinning regime, net negative = move-amplifying regime; computable from
+  public OI+Greeks) and expiry-lifecycle flows (charm/vanna decay near large expiries =
+  the mechanism behind max-pain drift). Greeks as TRADED instruments stay rejected (no
+  options book, theta never bites a non-holder). All judged under
   factory gates like any factor. This is genuinely NEW information (positioning + fear), unlike
   price-derived indicators.
 - **Multi-pair stat-arb (colleague claims ~9%/wk) — TESTED-DEAD here, claim needs evidence.**
