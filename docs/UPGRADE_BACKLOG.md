@@ -55,6 +55,17 @@ Zen's conviction note (2026-07-16): he believes this collaboration could be firs
 invent a genuinely new strategy from some untried combination — treat the project not
 only as replication of published turning-point work but as open-ended invention;
 novel-mechanism ideas welcome at trigger time, judged under the same gates.
+Companion hypothesis (Zen, 2026-07-17): "every strategy works for someone — they make it
+work by ADAPTING it / specific parameters." Split into its testable and its trap half:
+(a) LEGIT — strategies are regime-conditional (trend works in trends, mean-reversion in
+ranges, carry in high-funding); an adaptive META-LAYER (regime detection → which sleeve /
+which parameters get capital now) is a real, testable design — the Markov regime-switching
+item above is its first building block, and the live bot's regime gate is a primitive
+version already. (b) TRAP — "the right specific parameter" is usually parameter-fishing;
+if an edge exists only at ONE setting it is noise (the parameter-plateau gate in the
+factory-v2 stats queue exists exactly to kill this). Rule for the experiment: adaptation
+logic must be chosen walk-forward (re-fit on past only) and survive plateau + pooled-FDR
+discipline like everything else. Same trigger as the perfect-model work.
 
 ## Phase 2 — ML ranker (queued behind Alpha Factory)
 - **Options-derived signal family (colleague tip via Zen, 2026-07-16) — NEW INFORMATION, best of the batch.**
