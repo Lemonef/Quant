@@ -57,6 +57,24 @@ only as replication of published turning-point work but as open-ended invention;
 novel-mechanism ideas welcome at trigger time, judged under the same gates.
 
 ## Phase 2 — ML ranker (queued behind Alpha Factory)
+- **Options-derived signal family (colleague tip via Zen, 2026-07-16) — NEW INFORMATION, best of the batch.**
+  Crypto options data is free (Deribit public API: IV, put/call OI, term structure; CoinGlass/
+  Coinalyze: max-pain, per-expiry notional). Candidate zoo factors: implied-vol level/percentile
+  (fear gauge), put-skew (crash insurance demand), put/call OI ratio, IV-vs-realized spread
+  (variance premium), distance-to-max-pain into major expiries (pin-risk hypothesis — evidence
+  in equities is weak/mixed; treat as hypothesis, not lore), post-expiry drift. All judged under
+  factory gates like any factor. This is genuinely NEW information (positioning + fear), unlike
+  price-derived indicators.
+- **Multi-pair stat-arb (colleague claims ~9%/wk) — TESTED-DEAD here, claim needs evidence.**
+  Naive pairs + cointegration (incl. Kalman/OU) are in the dead pile (failed honest OOS ~30-way
+  sweep), and the factory's Kalman-spread family died again at all 3 speeds (2026-07-15 run).
+  "Many pairs" diversifies the same dead edge. 9%/wk ≈ +8,700%/yr compounded — extraordinary;
+  plausible explanations: short lucky sample, hidden leverage, maker-rebate/zero-fee venue,
+  or intraday frequency (blocked for Zen by the HFT wall). REOPEN ONLY IF: colleague shares a
+  verifiable track record ≥6mo + the venue/fee structure, then replicate under factory rules
+  at OUR fees first. Do not build on the claim alone.
+- Alpha-decay concept (same tip): already core factory machinery — IC decay horizons + the
+  multi-speed variant exist precisely because of it. Nothing new to build.
 - Cross-sectional ML ranker (LightGBM-style, scikit-learn) trained on the factory's
   factor panel; evaluated under the same purged walk-forward + FDR rules.
   _Provenance: Qlib workflow, Machine-Learning-for-Trading (Jansen)._
