@@ -31,3 +31,19 @@ Verdict: carry fix held for side changes; same bug class present in four other t
 - Blend tabs: frictionless per-cycle rebalance idealization undisclosed.
 
 Fix decisions + implementation: see fix commit(s) referencing this file.
+
+## Resolution (2026-07-21)
+Fixes merged (`0268919`): all blockers/majors addressed per DD1-DD9; verifier verdict
+MERGE (0 blockers/majors). `board.html` regenerated; `data.json` regenerates on the
+next scheduled bot cycle — derived-tab/deploy reads valid only after that run.
+
+Accepted follow-ups (verifier minors/spec-gaps, none flattering to results):
+1. Cost-model consistency: side cost flat vs gate/flip cost |delta|-scaled — currently
+   overcharges small positions (conservative). Decide one convention.
+2. Book v2 regk head-aligned fallback: dead branch today; add a loud failure if
+   `regime_log.csv` is ever shorter than the equity tail (silent look-ahead risk).
+3. Funding fetch `limit=1000` unpaginated (klines got pagination, funding did not);
+   pre-history cycles default to HR_LEV_COOL silently once equity outgrows it.
+4. BTC/ETH funding join is exact-ms; tolerance-window join more robust (failure mode
+   today is the honest skip+count path).
+5. `eth_funding_skipped` not rendered in the UI.
