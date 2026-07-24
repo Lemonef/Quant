@@ -15,6 +15,7 @@ MIN_OBS_DAYS = 250             # min daily observations for a factor to be judge
 BOOT_N = 1000                  # block-bootstrap resamples for survivor Sharpe/DD CIs
 BOOT_CI = 0.90                 # central CI mass for the bootstrap Sharpe interval
 BOOT_SEED = 20260724           # fixed seed: scoreboard must be reproducible run-to-run
+NOISE_N = 5                    # seeded price-noise re-runs per survivor (median Sharpe reported); noise sigma = SLIPPAGE — perturb at execution-uncertainty scale, no separate tunable
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (

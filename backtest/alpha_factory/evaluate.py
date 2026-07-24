@@ -21,12 +21,15 @@ def ic_stats(factor, close, horizons):
     return out
 
 
-def ls_returns(factor, ret, k_frac, fee, slip, borrow_annual, dpy, rebalance=1):
+def ls_returns(factor, ret, k_frac, fee, slip, borrow_annual, dpy, rebalance=1, delay=1):
     """Dollar-neutral top-K/bottom-K L/S, executed next day, net of fee+slippage on
     turnover and borrow on the short leg. rebalance>1 re-ranks only every R-th row
     and holds weights in between (equal-weight-at-rebalance; intra-period drift not
     modeled). All cost lines are functions of the HELD weights — borrow in particular
-    must not be charged while the held book is empty (e.g. a factor's NaN warmup)."""
+    must not be charged while the held book is empty (e.g. a factor's NaN warmup).
+    delay>1 executes t+delay instead of t+1 (lag-perturbation probe: a real edge
+    degrades gracefully, a timing artifact dies); turnover cost is unchanged — the
+    same trades happen, only later."""
     n = factor.count(axis=1)
     k = np.maximum(2, (n * k_frac).astype(int))
     rk = factor.rank(axis=1, ascending=False)
@@ -39,9 +42,9 @@ def ls_returns(factor, ret, k_frac, fee, slip, borrow_annual, dpy, rebalance=1):
         mask = pd.Series(np.arange(len(w)) % rebalance == 0, index=w.index)
         w = w.where(mask).ffill().fillna(0.0)
     turn = w.diff().abs().sum(axis=1).fillna(0.0)
-    gross = (w.shift(1).fillna(0.0) * ret).sum(axis=1)
+    gross = (w.shift(delay).fillna(0.0) * ret).sum(axis=1)
     short = w.clip(upper=0.0).abs().sum(axis=1)   # short leg of the HELD book, not the daily re-rank
-    return gross - turn * (fee + slip) - short.shift(1).fillna(0.0) * borrow_annual / dpy
+    return gross - turn * (fee + slip) - short.shift(delay).fillna(0.0) * borrow_annual / dpy
 
 
 def purged_folds(index, n_folds, embargo_days):

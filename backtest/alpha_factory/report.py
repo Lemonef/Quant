@@ -4,7 +4,7 @@ import numpy as np, pandas as pd
 from . import config as _cfg
 from .evaluate import ic_stats, ls_returns, purged_folds, fold_sharpes, daily_ic
 from .stats import ic_pvalue, bh_fdr, deflated_sharpe_prob, verdict
-from .robust import bootstrap_stats, is_fragile
+from .robust import bootstrap_stats, is_fragile, perturbation_stats, perturb_notes
 from .bench import incumbent_sleeves, improvement
 
 def _next_horizon(h, horizons):
@@ -39,7 +39,7 @@ def _score_rows(panel, zoo, cfg, rebalance, n_trials):
                          pval=ic_pvalue(float(icR.mean()), float(icR.std()), n_eff),
                          dsr_prob=deflated_sharpe_prob(sr, len(lsr.dropna()), cfg.DPY,
                                                        float(lsr.skew() or 0), float(lsr.kurt() or 0), n_trials),
-                         turnover=float(np.nan_to_num(lsr.abs().mean())), _lsr=lsr))
+                         turnover=float(np.nan_to_num(lsr.abs().mean())), _lsr=lsr, _fn=f.fn))
     return rows
 
 def _finalize(rows, panel, cfg):
@@ -60,11 +60,17 @@ def _finalize(rows, panel, cfg):
             r.update(**boot)
             if is_fragile(boot):
                 r["reason"] += " (FRAGILE: Sharpe CI spans 0)"
+            pert = perturbation_stats(r.pop("_fn"), panel, cfg, r["rebal"])
+            r.update(**pert)
+            for tag in perturb_notes(pert):
+                r["reason"] += f" ({tag})"
         else:
-            r.pop("_lsr"); r.update(max_corr=np.nan, delta_sharpe=np.nan,
-                                    delta_maxdd=np.nan, improves_book=False,
-                                    sharpe_lo=np.nan, sharpe_hi=np.nan,
-                                    maxdd_med=np.nan, maxdd_p95=np.nan)
+            r.pop("_lsr"); r.pop("_fn")
+            r.update(max_corr=np.nan, delta_sharpe=np.nan,
+                     delta_maxdd=np.nan, improves_book=False,
+                     sharpe_lo=np.nan, sharpe_hi=np.nan,
+                     maxdd_med=np.nan, maxdd_p95=np.nan,
+                     sharpe_lag=np.nan, sharpe_noise=np.nan)
     return pd.DataFrame(rows).sort_values(["verdict", "dsr_prob"], ascending=[False, False]).reset_index(drop=True)
 
 def run_factory(panel, zoo, cfg=_cfg, n_trials=None, rebalance=1):

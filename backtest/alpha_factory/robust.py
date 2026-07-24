@@ -1,10 +1,16 @@
-"""Robustness gauntlet — stage 1: circular block bootstrap on the net L/S return
-series. Point estimates lie; a survivor is only trusted with a CI on its Sharpe and
-a worst-plausible drawdown from the resampled paths. Block resampling (not iid)
-preserves short-range autocorrelation; blocks wrap circularly so end-of-sample days
-are not under-sampled."""
+"""Robustness gauntlet — post-verdict probes run on survivors only.
+Stage 1: circular block bootstrap on the net L/S return series. Point estimates
+lie; a survivor is only trusted with a CI on its Sharpe and a worst-plausible
+drawdown from the resampled paths. Block resampling (not iid) preserves
+short-range autocorrelation; blocks wrap circularly so end-of-sample days are
+not under-sampled.
+Stage 2: lag + price-noise perturbation. Execute t+2 instead of t+1, and re-run
+on prices jittered at the slippage scale — a real edge degrades gracefully,
+an artifact of exact timing or exact prices dies."""
 import math
 import numpy as np
+from .evaluate import ls_returns
+from .panel import Panel
 
 
 def _block_len(n):
@@ -49,3 +55,44 @@ def bootstrap_stats(series, dpy, n_boot, ci, seed):
 def is_fragile(boot):
     """A survivor whose Sharpe CI does not clear zero is flagged, not trusted."""
     return boot["sharpe_lo"] <= 0
+
+
+def _ann_sharpe(s, dpy):
+    s = s.dropna()
+    return float(s.mean() / s.std() * math.sqrt(dpy)) if len(s) > 1 and s.std() > 0 else 0.0
+
+
+def _noisy_panel(panel, sigma, rng):
+    """Panel with multiplicative price noise: one jitter factor per (day, coin),
+    applied to all four price fields so OHLC stays coherent. Volume/funding as-is."""
+    eps = 1.0 + rng.normal(0.0, sigma, panel.close.shape)
+    j = lambda df: df * eps
+    return Panel(j(panel.open), j(panel.high), j(panel.low), j(panel.close),
+                 panel.volume, panel.funding)
+
+
+def perturbation_stats(fn, panel, cfg, rebalance):
+    """Annualized net Sharpe under (a) t+2 execution and (b) price noise at the
+    SLIPPAGE scale (the factor is recomputed on the noisy panel — signals built
+    from exact prices must survive execution-sized uncertainty). Noise Sharpe is
+    the median over NOISE_N seeded re-runs so one draw cannot decide."""
+    fac = fn(panel)
+    lag = ls_returns(fac, panel.ret, cfg.K_FRAC, cfg.TAKER_FEE, cfg.SLIPPAGE,
+                     cfg.BORROW_ANNUAL, cfg.DPY, rebalance=rebalance, delay=2)
+    noise = []
+    for i in range(cfg.NOISE_N):
+        noisy = _noisy_panel(panel, cfg.SLIPPAGE, np.random.default_rng(cfg.BOOT_SEED + i))
+        nl = ls_returns(fn(noisy), noisy.ret, cfg.K_FRAC, cfg.TAKER_FEE, cfg.SLIPPAGE,
+                        cfg.BORROW_ANNUAL, cfg.DPY, rebalance=rebalance)
+        noise.append(_ann_sharpe(nl, cfg.DPY))
+    return dict(sharpe_lag=_ann_sharpe(lag, cfg.DPY), sharpe_noise=float(np.median(noise)))
+
+
+def perturb_notes(pert):
+    """Tags for perturbations that killed the edge (Sharpe driven to <= 0)."""
+    notes = []
+    if pert["sharpe_lag"] <= 0:
+        notes.append("LAG-FRAIL")
+    if pert["sharpe_noise"] <= 0:
+        notes.append("NOISE-FRAIL")
+    return notes
