@@ -4,7 +4,7 @@ import numpy as np, pandas as pd
 from . import config as _cfg
 from .evaluate import ic_stats, ls_returns, purged_folds, fold_sharpes, daily_ic
 from .stats import ic_pvalue, bh_fdr, deflated_sharpe_prob, verdict
-from .robust import bootstrap_stats, is_fragile, perturbation_stats, perturb_notes
+from .robust import bootstrap_stats, is_fragile, perturbation_stats, perturb_notes, plateau_check
 from .bench import incumbent_sleeves, improvement
 
 def _next_horizon(h, horizons):
@@ -64,13 +64,17 @@ def _finalize(rows, panel, cfg):
             r.update(**pert)
             for tag in perturb_notes(pert):
                 r["reason"] += f" ({tag})"
+            plateau = plateau_check(r["name"], r["rebal"], rows)
+            r["plateau_pass"] = np.nan if plateau is None else plateau
+            if plateau is False:
+                r["reason"] += " (CLIFF: adjacent-parameter sibling dies)"
         else:
             r.pop("_lsr"); r.pop("_fn")
             r.update(max_corr=np.nan, delta_sharpe=np.nan,
                      delta_maxdd=np.nan, improves_book=False,
                      sharpe_lo=np.nan, sharpe_hi=np.nan,
                      maxdd_med=np.nan, maxdd_p95=np.nan,
-                     sharpe_lag=np.nan, sharpe_noise=np.nan)
+                     sharpe_lag=np.nan, sharpe_noise=np.nan, plateau_pass=np.nan)
     return pd.DataFrame(rows).sort_values(["verdict", "dsr_prob"], ascending=[False, False]).reset_index(drop=True)
 
 def run_factory(panel, zoo, cfg=_cfg, n_trials=None, rebalance=1):

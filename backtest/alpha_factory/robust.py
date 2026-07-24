@@ -96,3 +96,36 @@ def perturb_notes(pert):
     if pert["sharpe_noise"] <= 0:
         notes.append("NOISE-FRAIL")
     return notes
+
+
+def param_key(name):
+    """(stem, params) from the zoo naming convention `<stem>_<int>[_<int>...]`.
+    params is None for parameter-free factors (no trailing integer parts)."""
+    parts = name.split("_")
+    nums = []
+    while parts and parts[-1].isdigit():
+        nums.append(int(parts.pop()))
+    return "_".join(parts), (tuple(reversed(nums)) or None)
+
+
+def plateau_check(name, rebal, rows):
+    """Parameter-plateau probe using rows ALREADY scored in this run: the zoo's
+    window grids (mom_5..252, lowvol_10/21/63, ...) are the neighbor set, so no
+    factor is recomputed. The adjacent lower and higher sibling (same stem, same
+    trading speed, ordered by parameter tuple) must both keep Sharpe > 0 — a
+    performance cliff one notch away marks a curve-fit peak, a plateau marks a
+    robust region. Returns True/False, or None when no sibling exists."""
+    stem, params = param_key(name)
+    if params is None:
+        return None
+    sibs = []
+    for r in rows:
+        s, p = param_key(r["name"])
+        if s == stem and p is not None and r["rebal"] == rebal and p != params:
+            sibs.append((p, r["ls_sharpe"]))
+    lower = [x for x in sibs if x[0] < params]
+    higher = [x for x in sibs if x[0] > params]
+    neighbors = ([max(lower)] if lower else []) + ([min(higher)] if higher else [])
+    if not neighbors:
+        return None
+    return all(sharpe > 0 for _, sharpe in neighbors)
