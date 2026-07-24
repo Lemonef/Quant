@@ -8,6 +8,7 @@ Stage 2: lag + price-noise perturbation. Execute t+2 instead of t+1, and re-run
 on prices jittered at the slippage scale — a real edge degrades gracefully,
 an artifact of exact timing or exact prices dies."""
 import math
+from itertools import combinations
 import numpy as np
 from .evaluate import ls_returns
 from .panel import Panel
@@ -96,6 +97,41 @@ def perturb_notes(pert):
     if pert["sharpe_noise"] <= 0:
         notes.append("NOISE-FRAIL")
     return notes
+
+
+def pbo_cscv(matrix, n_blocks):
+    """Probability of backtest overfitting via CSCV (Bailey, Borwein, Lopez de
+    Prado, Zhu 2017). matrix: days x strategies of net daily returns. Time is cut
+    into n_blocks contiguous blocks; for every balanced IS/OOS block split the
+    IS-best strategy's OOS relative rank feeds a logit; PBO = share of splits
+    where the IS winner lands at or below the OOS median. Selection metric is
+    daily Sharpe (annualization cancels in ranks). Deterministic — no resampling.
+    Block sums/sum-of-squares are precomputed so the C(n_blocks, n_blocks/2)
+    combinations cost matrix algebra, not passes over the data."""
+    M = np.asarray(matrix, dtype=float)
+    n, s = M.shape
+    if s < 2 or n < n_blocks:
+        return float("nan")
+    blocks = np.array_split(np.arange(n), n_blocks)
+    bsum = np.array([M[b].sum(axis=0) for b in blocks])
+    bsq = np.array([(M[b] ** 2).sum(axis=0) for b in blocks])
+    bn = np.array([len(b) for b in blocks], dtype=float)
+
+    def _sharpe(mask):
+        cnt = bn[mask].sum()
+        mu = bsum[mask].sum(axis=0) / cnt
+        var = bsq[mask].sum(axis=0) / cnt - mu ** 2
+        return mu / np.sqrt(np.maximum(var, 1e-18))
+
+    lam = []
+    for c in combinations(range(n_blocks), n_blocks // 2):
+        mask = np.zeros(n_blocks, dtype=bool)
+        mask[list(c)] = True
+        si, so = _sharpe(mask), _sharpe(~mask)
+        best = int(np.argmax(si))
+        w = np.sum(so <= so[best]) / (s + 1)   # OOS relative rank of the IS winner, in (0,1)
+        lam.append(math.log(w / (1 - w)))
+    return float(np.mean(np.array(lam) <= 0))
 
 
 def param_key(name):

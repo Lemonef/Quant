@@ -4,7 +4,8 @@ import numpy as np, pandas as pd
 from . import config as _cfg
 from .evaluate import ic_stats, ls_returns, purged_folds, fold_sharpes, daily_ic
 from .stats import ic_pvalue, bh_fdr, deflated_sharpe_prob, verdict
-from .robust import bootstrap_stats, is_fragile, perturbation_stats, perturb_notes, plateau_check
+from .robust import (bootstrap_stats, is_fragile, perturbation_stats, perturb_notes,
+                     plateau_check, pbo_cscv)
 from .bench import incumbent_sleeves, improvement
 
 def _next_horizon(h, horizons):
@@ -46,6 +47,9 @@ def _finalize(rows, panel, cfg):
     """Pool the given rows through one BH-FDR, then verdict + incumbent-improvement each."""
     keep = bh_fdr([r["pval"] for r in rows], cfg.FDR_Q)
     sleeves = incumbent_sleeves(panel, cfg)
+    # run-level PBO over the WHOLE candidate panel (warmup NaNs read as flat days)
+    pbo = pbo_cscv(pd.DataFrame({f"{r['name']}|{r['rebal']}": r["_lsr"] for r in rows})
+                   .fillna(0.0), cfg.CSCV_BLOCKS)
     for r, k in zip(rows, keep):
         r["pval_pass"] = bool(k)
         r["verdict"], r["reason"] = verdict(r, cfg)
@@ -75,7 +79,9 @@ def _finalize(rows, panel, cfg):
                      sharpe_lo=np.nan, sharpe_hi=np.nan,
                      maxdd_med=np.nan, maxdd_p95=np.nan,
                      sharpe_lag=np.nan, sharpe_noise=np.nan, plateau_pass=np.nan)
-    return pd.DataFrame(rows).sort_values(["verdict", "dsr_prob"], ascending=[False, False]).reset_index(drop=True)
+    df = pd.DataFrame(rows).sort_values(["verdict", "dsr_prob"], ascending=[False, False]).reset_index(drop=True)
+    df.attrs["pbo"] = pbo
+    return df
 
 def run_factory(panel, zoo, cfg=_cfg, n_trials=None, rebalance=1):
     """Single-speed run (default rebalance=1). Default args reproduce the pre-variant output."""
@@ -97,9 +103,14 @@ def render(df, cfg, out_dir, stamp):
     df.drop(columns=[c for c in df.columns if c.startswith("_")], errors="ignore").to_csv(csv, index=False)
     surv = df[df.verdict == "SURVIVED"]
     cfg_dump = {k: getattr(cfg, k) for k in dir(cfg) if k.isupper() and k != "SURVIVORSHIP_CAVEAT"}
+    pbo = df.attrs.get("pbo")
+    pbo_line = (f"Run-level PBO (CSCV, {cfg.CSCV_BLOCKS} blocks): {pbo:.2f} — "
+                "probability the best in-sample pick underperforms the OOS median"
+                if pbo is not None and not np.isnan(pbo) else "Run-level PBO: n/a")
     lines = [f"# Alpha Factory scoreboard — {stamp}", "",
              f"> {cfg.SURVIVORSHIP_CAVEAT}", "", f"Config: `{cfg_dump}`",
-             f"Factors tested: {len(df)} · SURVIVED: {len(surv)} · REJECTED: {len(df) - len(surv)}", "",
+             f"Factors tested: {len(df)} · SURVIVED: {len(surv)} · REJECTED: {len(df) - len(surv)}",
+             pbo_line, "",
              "## SURVIVED (sorted by deflated-Sharpe probability)", "",
              "| factor | family | rebal | prov | IC1 | ICIR1 | LS Sharpe | Sharpe CI | DD p95 | folds | DSRp | maxCorr | ΔSharpe | ΔDD | IMPROVES BOOK |",
              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
