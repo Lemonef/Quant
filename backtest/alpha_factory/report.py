@@ -4,6 +4,7 @@ import numpy as np, pandas as pd
 from . import config as _cfg
 from .evaluate import ic_stats, ls_returns, purged_folds, fold_sharpes, daily_ic
 from .stats import ic_pvalue, bh_fdr, deflated_sharpe_prob, verdict
+from .robust import bootstrap_stats, is_fragile
 from .bench import incumbent_sleeves, improvement
 
 def _next_horizon(h, horizons):
@@ -49,14 +50,21 @@ def _finalize(rows, panel, cfg):
         r["pval_pass"] = bool(k)
         r["verdict"], r["reason"] = verdict(r, cfg)
         if r["verdict"] == "SURVIVED":
-            imp = improvement(r.pop("_lsr"), sleeves, cfg)
+            lsr = r.pop("_lsr")
+            imp = improvement(lsr, sleeves, cfg)
             r.update(max_corr=imp["max_corr"], delta_sharpe=round(imp["delta_sharpe"], 3),
                      delta_maxdd=round(imp["delta_maxdd"], 3), improves_book=imp["improves"])
             if imp["redundant"]:
                 r["reason"] += " (REDUNDANT vs incumbent sleeve)"
+            boot = bootstrap_stats(lsr, cfg.DPY, cfg.BOOT_N, cfg.BOOT_CI, cfg.BOOT_SEED)
+            r.update(**boot)
+            if is_fragile(boot):
+                r["reason"] += " (FRAGILE: Sharpe CI spans 0)"
         else:
             r.pop("_lsr"); r.update(max_corr=np.nan, delta_sharpe=np.nan,
-                                    delta_maxdd=np.nan, improves_book=False)
+                                    delta_maxdd=np.nan, improves_book=False,
+                                    sharpe_lo=np.nan, sharpe_hi=np.nan,
+                                    maxdd_med=np.nan, maxdd_p95=np.nan)
     return pd.DataFrame(rows).sort_values(["verdict", "dsr_prob"], ascending=[False, False]).reset_index(drop=True)
 
 def run_factory(panel, zoo, cfg=_cfg, n_trials=None, rebalance=1):
@@ -83,12 +91,13 @@ def render(df, cfg, out_dir, stamp):
              f"> {cfg.SURVIVORSHIP_CAVEAT}", "", f"Config: `{cfg_dump}`",
              f"Factors tested: {len(df)} · SURVIVED: {len(surv)} · REJECTED: {len(df) - len(surv)}", "",
              "## SURVIVED (sorted by deflated-Sharpe probability)", "",
-             "| factor | family | rebal | prov | IC1 | ICIR1 | LS Sharpe | folds | DSRp | maxCorr | ΔSharpe | ΔDD | IMPROVES BOOK |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+             "| factor | family | rebal | prov | IC1 | ICIR1 | LS Sharpe | Sharpe CI | DD p95 | folds | DSRp | maxCorr | ΔSharpe | ΔDD | IMPROVES BOOK |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for _, r in surv.iterrows():
         folds = "/".join(f"{x:.1f}" for x in r.fold_sharpes)
         lines.append(f"| {r['name']} | {r.family} | {r.rebal} | {r.provenance.split()[0]} | {r.ic_1:.3f} | {r.icir_1:.1f} | "
-                     f"{r.ls_sharpe:.2f} | {folds} | {r.dsr_prob:.2f} | {r.max_corr:.2f} | "
+                     f"{r.ls_sharpe:.2f} | [{r.sharpe_lo:.2f}, {r.sharpe_hi:.2f}] | {r.maxdd_p95:.0%} | "
+                     f"{folds} | {r.dsr_prob:.2f} | {r.max_corr:.2f} | "
                      f"{r.delta_sharpe:+.3f} | {r.delta_maxdd:+.3f} | {'YES' if r.improves_book else 'no'} |")
     lines += ["", "## REJECTED — count by reason", ""]
     for reason, n in df[df.verdict == "REJECTED"].reason.value_counts().items():

@@ -12,6 +12,9 @@ DPY = 365                      # crypto trades every day
 DECAY_MIN_RATIO = 0.25         # decay gate: same-sign IC at the next-higher horizon >= this fraction of the traded-horizon IC
 DSR_MIN_PROB = 0.5             # deflated-Sharpe probability floor
 MIN_OBS_DAYS = 250             # min daily observations for a factor to be judged
+BOOT_N = 1000                  # block-bootstrap resamples for survivor Sharpe/DD CIs
+BOOT_CI = 0.90                 # central CI mass for the bootstrap Sharpe interval
+BOOT_SEED = 20260724           # fixed seed: scoreboard must be reproducible run-to-run
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (
