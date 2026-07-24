@@ -5,7 +5,7 @@ from . import config as _cfg
 from .evaluate import ic_stats, ls_returns, purged_folds, fold_sharpes, daily_ic
 from .stats import ic_pvalue, bh_fdr, deflated_sharpe_prob, verdict
 from .robust import (bootstrap_stats, is_fragile, perturbation_stats, perturb_notes,
-                     plateau_check, pbo_cscv)
+                     plateau_check, pbo_cscv, spa_pvalue)
 from .bench import incumbent_sleeves, improvement
 
 def _next_horizon(h, horizons):
@@ -47,9 +47,10 @@ def _finalize(rows, panel, cfg):
     """Pool the given rows through one BH-FDR, then verdict + incumbent-improvement each."""
     keep = bh_fdr([r["pval"] for r in rows], cfg.FDR_Q)
     sleeves = incumbent_sleeves(panel, cfg)
-    # run-level PBO over the WHOLE candidate panel (warmup NaNs read as flat days)
-    pbo = pbo_cscv(pd.DataFrame({f"{r['name']}|{r['rebal']}": r["_lsr"] for r in rows})
-                   .fillna(0.0), cfg.CSCV_BLOCKS)
+    # run-level probes over the WHOLE candidate panel (warmup NaNs read as flat days)
+    lsr_panel = pd.DataFrame({f"{r['name']}|{r['rebal']}": r["_lsr"] for r in rows}).fillna(0.0)
+    pbo = pbo_cscv(lsr_panel, cfg.CSCV_BLOCKS)
+    spa_p = spa_pvalue(lsr_panel, cfg.BOOT_N, cfg.BOOT_SEED)
     for r, k in zip(rows, keep):
         r["pval_pass"] = bool(k)
         r["verdict"], r["reason"] = verdict(r, cfg)
@@ -81,6 +82,7 @@ def _finalize(rows, panel, cfg):
                      sharpe_lag=np.nan, sharpe_noise=np.nan, plateau_pass=np.nan)
     df = pd.DataFrame(rows).sort_values(["verdict", "dsr_prob"], ascending=[False, False]).reset_index(drop=True)
     df.attrs["pbo"] = pbo
+    df.attrs["spa_p"] = spa_p
     return df
 
 def run_factory(panel, zoo, cfg=_cfg, n_trials=None, rebalance=1):
@@ -107,10 +109,13 @@ def render(df, cfg, out_dir, stamp):
     pbo_line = (f"Run-level PBO (CSCV, {cfg.CSCV_BLOCKS} blocks): {pbo:.2f} — "
                 "probability the best in-sample pick underperforms the OOS median"
                 if pbo is not None and not np.isnan(pbo) else "Run-level PBO: n/a")
+    spa = df.attrs.get("spa_p")
+    spa_line = (f"Hansen SPA p (best row vs zero, whole search): {spa:.3f}"
+                if spa is not None and not np.isnan(spa) else "Hansen SPA p: n/a")
     lines = [f"# Alpha Factory scoreboard — {stamp}", "",
              f"> {cfg.SURVIVORSHIP_CAVEAT}", "", f"Config: `{cfg_dump}`",
              f"Factors tested: {len(df)} · SURVIVED: {len(surv)} · REJECTED: {len(df) - len(surv)}",
-             pbo_line, "",
+             pbo_line, spa_line, "",
              "## SURVIVED (sorted by deflated-Sharpe probability)", "",
              "| factor | family | rebal | prov | IC1 | ICIR1 | LS Sharpe | Sharpe CI | DD p95 | folds | DSRp | maxCorr | ΔSharpe | ΔDD | IMPROVES BOOK |",
              "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]

@@ -19,15 +19,18 @@ def _block_len(n):
     return max(1, round(n ** (1 / 3)))
 
 
-def _resample(r, n_boot, rng):
-    """(n_boot, n) matrix of circular-block resampled paths of r."""
-    n = len(r)
+def _resample_idx(n, n_boot, rng):
+    """(n_boot, n) index matrix of circular-block resampled day positions."""
     L = _block_len(n)
     n_blocks = math.ceil(n / L)
     starts = rng.integers(0, n, size=(n_boot, n_blocks))
     offs = np.arange(L)
-    idx = (starts[:, :, None] + offs[None, None, :]).reshape(n_boot, -1)[:, :n] % n
-    return r[idx]
+    return (starts[:, :, None] + offs[None, None, :]).reshape(n_boot, -1)[:, :n] % n
+
+
+def _resample(r, n_boot, rng):
+    """(n_boot, n) matrix of circular-block resampled paths of r."""
+    return r[_resample_idx(len(r), n_boot, rng)]
 
 
 def _maxdd(paths):
@@ -132,6 +135,33 @@ def pbo_cscv(matrix, n_blocks):
         w = np.sum(so <= so[best]) / (s + 1)   # OOS relative rank of the IS winner, in (0,1)
         lam.append(math.log(w / (1 - w)))
     return float(np.mean(np.array(lam) <= 0))
+
+
+def spa_pvalue(matrix, n_boot, seed):
+    """Hansen (2005) SPA consistent p-value vs a zero (cash) benchmark: is the
+    BEST strategy in the universe real given the whole search — the complement
+    of per-candidate FDR. Days are resampled JOINTLY across strategies with the
+    same circular block scheme as the Sharpe CIs, preserving cross-strategy
+    dependence. Consistent recentring: strategies whose mean clears the
+    -sqrt(2 loglog n / n) band are centred at zero under the null; clearly
+    inferior ones keep their negative drift so they cannot loosen the null."""
+    M = np.asarray(matrix, dtype=float)
+    n, s = M.shape
+    if n < 30 or s < 1:
+        return float("nan")
+    d = M.mean(axis=0)
+    idx = _resample_idx(n, n_boot, np.random.default_rng(seed))
+    boot_means = np.empty((n_boot, s))
+    for b in range(n_boot):                      # loop, not fancy-index: (B,n,s) would not fit in RAM
+        boot_means[b] = M[idx[b]].mean(axis=0)
+    omega = boot_means.std(axis=0) * math.sqrt(n)          # bootstrap studentization scale
+    omega = np.maximum(omega, 1e-12)
+    t_stat = max(0.0, float(np.max(math.sqrt(n) * d / omega)))
+    band = omega * math.sqrt(2 * math.log(math.log(n)) / n)
+    mu_null = np.where(d >= -band, d, 0.0)
+    z = math.sqrt(n) * (boot_means - mu_null) / omega
+    t_boot = np.maximum(0.0, z.max(axis=1))
+    return float(np.mean(t_boot >= t_stat))
 
 
 def param_key(name):
