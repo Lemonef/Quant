@@ -28,6 +28,7 @@ META_MIN_TRAIN_EVENTS = 100    # skip a walk-forward fold trained on fewer label
 META_Z = 1.645                 # one-sided 95% z: bet-subset precision must beat base significantly, not by luck
 SMOOTH_HALFLIVES = (5, 20)     # Track B score-EWMA halflives (days) — two points, not a grid; each is an n_trials entry
 BAND_EXIT_MULT = 2             # hysteresis: exit only past rank K*this (enter top K, hold to K*2)
+REGIME_H = 5                   # Track C label horizon: sign of the next 5d book return
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (
