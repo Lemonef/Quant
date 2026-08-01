@@ -77,7 +77,7 @@ infra-heavy), any live deployment decision (owner-gated regardless of results).
 | A meta-labeling (rsi2dip) | **DEAD at kill test** | precision 0.648 vs base 0.627, z 0.86 < 1.645 (584 OOS entries) |
 | B turnover-aware translation | **DEAD at kill test** | recovered ~1.3 Sharpe of cost drag (raw −1.39 → −0.13) but no variant crossed zero; one OOS era negative in all variants |
 | C learned regime gate | **DEAD at kill test** | ungated book OOS Sharpe 1.79 → gated −1.60, 4× DD; churn without skill. Kill line hardened (always-flat gaming caught by the noise test) |
-| D turning-point extrema | designed below — not built | — |
+| D turning-point extrema | **DETECTION REAL, NO ADOPT** | near-low precision 41.3% vs base 19.8% (z 5.19, 1487 OOS days) — but overlay vs buy-hold diff-Sharpe CI [−1.03, +0.62] spans zero; +0.007 edge is luck-sized |
 
 Three clean kills sharpen the picture: the book's mechanism edges are real
 (OOS Sharpe 1.79 stands un-improved), and daily-frequency PREDICTION on this
