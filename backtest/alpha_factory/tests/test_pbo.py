@@ -28,6 +28,13 @@ def test_pbo_low_when_one_strategy_is_genuinely_best():
     assert pbo < 0.2
 
 
+def test_pbo_rejects_odd_block_count():
+    import pytest
+    from alpha_factory.robust import pbo_cscv
+    with pytest.raises(ValueError):
+        pbo_cscv(_noise_matrix(), 11)
+
+
 def test_pbo_degenerate_inputs():
     from alpha_factory.robust import pbo_cscv
     assert np.isnan(pbo_cscv(_noise_matrix(n_strat=1), cfg.CSCV_BLOCKS))

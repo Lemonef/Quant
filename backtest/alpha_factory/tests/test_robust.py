@@ -14,33 +14,33 @@ def _series(mu, sigma, n=1000, seed=3):
 
 def test_ci_brackets_point_sharpe():
     s = _series(0.001, 0.01)
-    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1)
+    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1, dd_q=cfg.BOOT_DD_Q)
     point = s.mean() / s.std() * np.sqrt(cfg.DPY)
     assert out["sharpe_lo"] < point < out["sharpe_hi"]
 
 
 def test_strong_edge_ci_excludes_zero():
     s = _series(0.004, 0.01)  # daily Sharpe 0.4 — unambiguous edge
-    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1)
+    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1, dd_q=cfg.BOOT_DD_Q)
     assert out["sharpe_lo"] > 0
 
 
 def test_pure_noise_ci_spans_zero():
     s = _series(0.0, 0.01)
-    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1)
+    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1, dd_q=cfg.BOOT_DD_Q)
     assert out["sharpe_lo"] < 0 < out["sharpe_hi"]
 
 
 def test_seed_reproducible():
     s = _series(0.001, 0.01)
-    a = bootstrap_stats(s, cfg.DPY, n_boot=200, ci=0.90, seed=7)
-    b = bootstrap_stats(s, cfg.DPY, n_boot=200, ci=0.90, seed=7)
+    a = bootstrap_stats(s, cfg.DPY, n_boot=200, ci=0.90, seed=7, dd_q=cfg.BOOT_DD_Q)
+    b = bootstrap_stats(s, cfg.DPY, n_boot=200, ci=0.90, seed=7, dd_q=cfg.BOOT_DD_Q)
     assert a == b
 
 
 def test_maxdd_p95_positive_and_plausible():
     s = _series(0.0005, 0.02)
-    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1)
+    out = bootstrap_stats(s, cfg.DPY, n_boot=500, ci=0.90, seed=1, dd_q=cfg.BOOT_DD_Q)
     # DD reported as a positive fraction; the 95th-percentile path DD must be at
     # least as deep as the median path DD, and both nonzero for a noisy series
     assert out["maxdd_p95"] >= out["maxdd_med"] > 0
@@ -49,7 +49,7 @@ def test_maxdd_p95_positive_and_plausible():
 def test_degenerate_constant_series():
     idx = pd.date_range("2023-01-01", periods=300, freq="D", tz="UTC")
     s = pd.Series(0.0, index=idx)
-    out = bootstrap_stats(s, cfg.DPY, n_boot=100, ci=0.90, seed=1)
+    out = bootstrap_stats(s, cfg.DPY, n_boot=100, ci=0.90, seed=1, dd_q=cfg.BOOT_DD_Q)
     assert out["sharpe_lo"] == out["sharpe_hi"] == 0.0
     assert out["maxdd_p95"] == 0.0
 

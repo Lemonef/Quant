@@ -13,6 +13,8 @@ import numpy as np
 from .evaluate import ls_returns
 from .panel import Panel
 
+_MIN_STAT_DAYS = 30   # too-short-sample guard; mirrors stats.deflated_sharpe_prob's n_days < 30 — change together
+
 
 def _block_len(n):
     """Rule-of-thumb optimal block length ~ n^(1/3) (Hall/Politis-White order)."""
@@ -40,10 +42,11 @@ def _maxdd(paths):
     return (1.0 - eq / peak).max(axis=1)
 
 
-def bootstrap_stats(series, dpy, n_boot, ci, seed):
+def bootstrap_stats(series, dpy, n_boot, ci, seed, dd_q):
     """Sharpe CI + drawdown distribution for a net daily return series.
     Returns sharpe_lo/sharpe_hi (central `ci` interval), maxdd_med, maxdd_p95
-    (worst-plausible DD — size from this, not the single observed DD)."""
+    (worst-plausible DD at the dd_q quantile — size from this, not the single
+    observed DD; the column name mirrors cfg.BOOT_DD_Q)."""
     r = series.dropna().to_numpy(dtype=float)
     if len(r) < 2 or r.std() == 0:
         return dict(sharpe_lo=0.0, sharpe_hi=0.0, maxdd_med=0.0, maxdd_p95=0.0)
@@ -53,7 +56,7 @@ def bootstrap_stats(series, dpy, n_boot, ci, seed):
     lo, hi = np.quantile(sharpes, [(1 - ci) / 2, (1 + ci) / 2])
     dd = _maxdd(paths)
     return dict(sharpe_lo=float(lo), sharpe_hi=float(hi),
-                maxdd_med=float(np.median(dd)), maxdd_p95=float(np.quantile(dd, 0.95)))
+                maxdd_med=float(np.median(dd)), maxdd_p95=float(np.quantile(dd, dd_q)))
 
 
 def is_fragile(boot):
@@ -68,7 +71,10 @@ def _ann_sharpe(s, dpy):
 
 def _noisy_panel(panel, sigma, rng):
     """Panel with multiplicative price noise: one jitter factor per (day, coin),
-    applied to all four price fields so OHLC stays coherent. Volume/funding as-is."""
+    applied to all four price fields so OHLC stays coherent. Volume/funding as-is.
+    Limitation: the shared per-day factor cancels in same-day price ratios, so
+    candle-shape (k-bar) factors feel the noise only through the return series —
+    NOISE-FRAIL is a weaker probe for that family than for level-based factors."""
     eps = 1.0 + rng.normal(0.0, sigma, panel.close.shape)
     j = lambda df: df * eps
     return Panel(j(panel.open), j(panel.high), j(panel.low), j(panel.close),
@@ -111,6 +117,8 @@ def pbo_cscv(matrix, n_blocks):
     daily Sharpe (annualization cancels in ranks). Deterministic — no resampling.
     Block sums/sum-of-squares are precomputed so the C(n_blocks, n_blocks/2)
     combinations cost matrix algebra, not passes over the data."""
+    if n_blocks % 2:
+        raise ValueError(f"CSCV needs an even block count for balanced splits, got {n_blocks}")
     M = np.asarray(matrix, dtype=float)
     n, s = M.shape
     if s < 2 or n < n_blocks:
@@ -124,7 +132,7 @@ def pbo_cscv(matrix, n_blocks):
         cnt = bn[mask].sum()
         mu = bsum[mask].sum(axis=0) / cnt
         var = bsq[mask].sum(axis=0) / cnt - mu ** 2
-        return mu / np.sqrt(np.maximum(var, 1e-18))
+        return mu / np.sqrt(np.maximum(var, 1e-18))   # 1e-18: float-noise floor so a constant column ranks flat instead of dividing by 0
 
     lam = []
     for c in combinations(range(n_blocks), n_blocks // 2):
@@ -147,7 +155,7 @@ def spa_pvalue(matrix, n_boot, seed):
     inferior ones keep their negative drift so they cannot loosen the null."""
     M = np.asarray(matrix, dtype=float)
     n, s = M.shape
-    if n < 30 or s < 1:
+    if n < _MIN_STAT_DAYS or s < 1:
         return float("nan")
     d = M.mean(axis=0)
     idx = _resample_idx(n, n_boot, np.random.default_rng(seed))
@@ -155,7 +163,7 @@ def spa_pvalue(matrix, n_boot, seed):
     for b in range(n_boot):                      # loop, not fancy-index: (B,n,s) would not fit in RAM
         boot_means[b] = M[idx[b]].mean(axis=0)
     omega = boot_means.std(axis=0) * math.sqrt(n)          # bootstrap studentization scale
-    omega = np.maximum(omega, 1e-12)
+    omega = np.maximum(omega, 1e-12)                       # 1e-12: float-noise floor — a zero-variance strategy studentizes flat, not inf
     t_stat = max(0.0, float(np.max(math.sqrt(n) * d / omega)))
     band = omega * math.sqrt(2 * math.log(math.log(n)) / n)
     mu_null = np.where(d >= -band, d, 0.0)
@@ -187,7 +195,10 @@ def plateau_check(name, rebal, rows):
     sibs = []
     for r in rows:
         s, p = param_key(r["name"])
-        if s == stem and p is not None and r["rebal"] == rebal and p != params:
+        # a grid NEIGHBOR shares the stem and differs in exactly one coordinate —
+        # e.g. volratio_10_126 is not adjacent to volratio_21_63 (both coords move)
+        if (s == stem and p is not None and r["rebal"] == rebal and len(p) == len(params)
+                and sum(a != b for a, b in zip(p, params)) == 1):
             sibs.append((p, r["ls_sharpe"]))
     lower = [x for x in sibs if x[0] < params]
     higher = [x for x in sibs if x[0] > params]

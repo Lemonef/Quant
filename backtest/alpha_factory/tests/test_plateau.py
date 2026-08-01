@@ -37,6 +37,15 @@ def test_plateau_ignores_other_speeds_and_stems():
     assert plateau_check("mom_21", 1, rows) is True      # rebal-5 and rev_* rows invisible
 
 
+def test_plateau_neighbors_differ_in_exactly_one_param():
+    from alpha_factory.robust import plateau_check
+    # (10,126) differs from (21,63) in BOTH coordinates — not a grid neighbor and
+    # must not decide the verdict; the only true neighbor (10,63) holds
+    rows = [_row("volratio_10_63", 1, 0.9), _row("volratio_21_63", 1, 1.1),
+            _row("volratio_10_126", 1, -2.0)]
+    assert plateau_check("volratio_21_63", 1, rows) is True
+
+
 def test_plateau_not_applicable():
     from alpha_factory.robust import plateau_check
     rows = [_row("spread_kalman", 1, 1.0), _row("planted", 1, 2.0)]

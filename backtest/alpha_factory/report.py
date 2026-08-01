@@ -61,7 +61,8 @@ def _finalize(rows, panel, cfg):
                      delta_maxdd=round(imp["delta_maxdd"], 3), improves_book=imp["improves"])
             if imp["redundant"]:
                 r["reason"] += " (REDUNDANT vs incumbent sleeve)"
-            boot = bootstrap_stats(lsr, cfg.DPY, cfg.BOOT_N, cfg.BOOT_CI, cfg.BOOT_SEED)
+            boot = bootstrap_stats(lsr, cfg.DPY, cfg.BOOT_N, cfg.BOOT_CI, cfg.BOOT_SEED,
+                                   cfg.BOOT_DD_Q)
             r.update(**boot)
             if is_fragile(boot):
                 r["reason"] += " (FRAGILE: Sharpe CI spans 0)"
