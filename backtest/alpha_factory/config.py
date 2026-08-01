@@ -29,6 +29,8 @@ META_Z = 1.645                 # one-sided 95% z: bet-subset precision must beat
 SMOOTH_HALFLIVES = (5, 20)     # Track B score-EWMA halflives (days) — two points, not a grid; each is an n_trials entry
 BAND_EXIT_MULT = 2             # hysteresis: exit only past rank K*this (enter top K, hold to K*2)
 REGIME_H = 5                   # Track C label horizon: sign of the next 5d book return
+EXTREMA_K = 3                  # zigzag reversal threshold = K x vol20 (swings must clear noise; vol-derived, not fixed-percent)
+EXTREMA_Z = 3                  # "near an extremum" label window, days each side
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (
