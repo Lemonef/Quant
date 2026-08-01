@@ -49,3 +49,44 @@ def test_track_d_kill_reports_and_fails_on_noise():
     assert isinstance(out["passes"], bool)
     # a GBM anchor has no predictable turning points net of costs
     assert out["passes"] == False  # noqa: E712
+
+
+def _swingy(n=4000, seed=13, amp=0.08, period=60):
+    """Sine-swing price with noise: real intermediate swings a flip machine should ride."""
+    rng = np.random.default_rng(seed)
+    idx = pd.date_range("2024-01-01", periods=n, freq="h", tz="UTC")
+    t = np.arange(n)
+    px = 100 * np.exp(amp * np.sin(2 * np.pi * t / period) + np.cumsum(rng.normal(0, 0.002, n)))
+    return pd.Series(px, index=idx)
+
+
+def test_bars_per_year_is_self_measured():
+    from alpha_factory.extrema import bars_per_year
+    hourly = _swingy(100)
+    assert abs(bars_per_year(hourly.index) - 8760) < 30
+    daily = pd.date_range("2024-01-01", periods=100, freq="D", tz="UTC")
+    assert abs(bars_per_year(daily) - 365) < 2
+
+
+def test_flip_overlay_state_machine():
+    from alpha_factory.extrema import flip_positions
+    idx = pd.date_range("2024-01-01", periods=6, freq="h", tz="UTC")
+    p_low = pd.Series([0.9, 0.2, 0.1, 0.2, 0.9, 0.2], index=idx)
+    p_high = pd.Series([0.1, 0.2, 0.9, 0.2, 0.1, 0.2], index=idx)
+    pos = flip_positions(p_low, p_high)
+    assert list(pos) == [1, 1, -1, -1, 1, 1]      # long from low-call, flip short at high-call
+
+
+def test_track_d2_kill_on_swingy_series_passes_and_noise_fails():
+    from alpha_factory.extrema import track_d2_kill
+    swing = _swingy()
+    out = track_d2_kill(swing, cfg)
+    for k in ("n_oos_bars", "low_z", "flip_sharpe", "flip_sharpe_lo", "hold_sharpe", "passes"):
+        assert k in out, k
+    # engineered swings are the it-works fixture: the machine must catch them
+    assert out["passes"] == True  # noqa: E712
+    rng = np.random.default_rng(41)
+    idx = pd.date_range("2024-01-01", periods=4000, freq="h", tz="UTC")
+    gbm = pd.Series(100 * np.exp(np.cumsum(rng.normal(0, 0.004, 4000))), index=idx)
+    out2 = track_d2_kill(gbm, cfg)
+    assert out2["passes"] == False  # noqa: E712

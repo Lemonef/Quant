@@ -129,3 +129,101 @@ def track_d_kill(panel, cfg):
     out["passes"] = bool(not np.isnan(z) and z >= cfg.META_Z
                          and out["overlay_sharpe"] > out["hold_sharpe"])
     return out
+
+
+def bars_per_year(index):
+    """Annualization from the index itself — never a hardcoded bars/day guess."""
+    step = pd.Series(index).diff().median()
+    return float(pd.Timedelta(days=365) / step)
+
+
+def flip_positions(p_low, p_high):
+    """The flip machine: go long on a near-low call, flip short on a near-high
+    call, otherwise hold the current side. Always in the market once started."""
+    sig = pd.Series(np.nan, index=p_low.index)
+    sig[(p_low > 0.5) & (p_low >= p_high)] = 1.0
+    sig[(p_high > 0.5) & (p_high > p_low)] = -1.0
+    return sig.ffill().fillna(0.0)
+
+
+def _series_features(px):
+    """Causal single-series state (windows are structural bar-lookbacks)."""
+    ret = px.pct_change()
+    return pd.DataFrame({
+        "ret5": px.pct_change(5),
+        "ret28": px.pct_change(28),
+        "over_ma200": (px > px.rolling(200).mean()).astype(float),
+        "ma5050": (px.rolling(50).mean() > px.rolling(150).mean()).astype(float),
+        "volratio": ret.rolling(20).std() / ret.rolling(63).std().replace(0, np.nan),
+        "dist_low63": px / px.rolling(63).min() - 1,
+        "dist_high63": px / px.rolling(63).max() - 1,
+        "downrun": (ret < 0).astype(float).groupby((ret >= 0).cumsum()).cumsum(),
+        "volvol": ret.rolling(5).std().rolling(20).std(),
+        "dd63": px / px.rolling(63).max() - 1,
+    })
+
+
+def track_d2_kill(series, cfg):
+    """Intraday flip-machine kill test on ONE price series (any bar size —
+    annualization self-measured). Pass needs all three: near-low detection
+    significant (z >= META_Z), flip overlay ABSOLUTELY profitable net of costs
+    (bootstrap Sharpe CI lower bound > 0), and flip beats buy-and-hold."""
+    from .robust import bootstrap_stats
+    px = series.dropna()
+    bpy = bars_per_year(px.index)
+    ext = zigzag_extrema(px, cfg.EXTREMA_K)
+    X = _series_features(px)
+    y_low = near_labels(px.index, ext, "low", cfg.EXTREMA_Z)
+    y_high = near_labels(px.index, ext, "high", cfg.EXTREMA_Z)
+    n = len(px)
+    folds = np.array_split(np.arange(n), cfg.N_FOLDS)
+    p_low = pd.Series(np.nan, index=px.index)
+    p_high = pd.Series(np.nan, index=px.index)
+    for i in range(1, cfg.N_FOLDS):
+        cutoff = px.index[folds[i][0]]
+        tr = (px.index < cutoff) & X.notna().all(axis=1).to_numpy()
+        near_unconf = pd.Series(False, index=px.index)
+        for d, row in ext.iterrows():
+            if row.confirmed >= cutoff:
+                j = px.index.get_loc(d)
+                near_unconf.iloc[max(0, j - cfg.EXTREMA_Z):j + cfg.EXTREMA_Z + 1] = True
+        tr &= ~near_unconf.to_numpy()
+        if tr.sum() < cfg.ML_MIN_TRAIN_DAYS:
+            continue
+        te = folds[i][X.iloc[folds[i]].notna().all(axis=1).to_numpy()]
+        for tgt, sink in ((y_low, p_low), (y_high, p_high)):
+            m = HistGradientBoostingClassifier(
+                max_iter=cfg.ML_MAX_ITER, learning_rate=cfg.ML_LEARNING_RATE,
+                max_depth=cfg.ML_MAX_DEPTH, random_state=cfg.BOOT_SEED)
+            m.fit(X[tr], tgt[tr])
+            if len(te):
+                sink.iloc[te] = m.predict_proba(X.iloc[te])[:, 1]
+    oos = p_low.notna()
+    n_oos = int(oos.sum())
+    if not n_oos:
+        return dict(n_oos_bars=0, low_base_rate=float("nan"), low_precision=float("nan"),
+                    low_z=float("nan"), flip_sharpe=0.0, flip_sharpe_lo=0.0,
+                    hold_sharpe=0.0, flips_per_year=0.0, passes=False)
+    base = float(y_low[oos].mean())
+    bet = oos & (p_low > 0.5)
+    prec = float(y_low[bet].mean()) if bet.any() else float("nan")
+    z = ((prec - base) / np.sqrt(base * (1 - base) / int(bet.sum()))
+         if bet.any() and 0 < base < 1 else float("nan"))
+    pos = flip_positions(p_low.fillna(0.0), p_high.fillna(0.0))
+    flips = pos.diff().abs().fillna(0.0)
+    ret = px.pct_change().fillna(0.0)
+    flip_ret = (pos.shift(1).fillna(0.0) * ret - flips * (cfg.TAKER_FEE + cfg.SLIPPAGE))[oos]
+    hold = ret[oos]
+    boot = bootstrap_stats(flip_ret, bpy, cfg.BOOT_N, cfg.BOOT_CI, cfg.BOOT_SEED, cfg.BOOT_DD_Q)
+
+    def _sh(s):
+        return float(s.mean() / s.std() * np.sqrt(bpy)) if s.std() > 0 else 0.0
+
+    out = dict(n_oos_bars=n_oos, low_base_rate=base, low_precision=prec, low_z=float(z),
+               flip_sharpe=_sh(flip_ret), flip_sharpe_lo=boot["sharpe_lo"],
+               hold_sharpe=_sh(hold),
+               flips_per_year=float(flips[oos].sum() / 2 / (n_oos / bpy)))
+    out["passes"] = bool(not np.isnan(z) and z >= cfg.META_Z
+                         and out["flip_sharpe_lo"] > 0
+                         and out["flip_sharpe"] > out["hold_sharpe"])
+    return out
