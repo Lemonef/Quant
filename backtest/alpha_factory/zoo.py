@@ -182,6 +182,38 @@ def build_zoo():
         _F(z, f"lowbeta_{w}", "beta", J, beta_f)
         _F(z, f"anchorcorr_{w}", "beta", J, lambda p, w=w: -p.ret.rolling(w).corr(p.ret[_anchor(p)]))
 
+    # cross-asset regime interactions (Zen 2026-07-21 ask; mechanism-backed:
+    # risk-off hedge flows via gold, dollar-liquidity via EURUSDT, relative carry
+    # vs the anchor). Reference series may be absent (synthetic panels) — factors
+    # then compute all-NaN and the factory judges them on coverage, not a crash.
+    CA = "Zen 2026-07-21 cross-asset ask"
+
+    def _refret(p, sym):
+        return p.ret[sym] if sym in p.close.columns else None
+
+    def _regime(p, sym, w):
+        """corr(coin, ref, w) signed by the ref's own 28d trend: when the hedge
+        asset trends up (risk-off / dollar-weak), favor coins that move WITH it."""
+        r = _refret(p, sym)
+        if r is None:
+            return pd.DataFrame(np.nan, index=p.close.index, columns=p.close.columns)
+        sign = np.sign(p.close[sym].pct_change(28))
+        return p.ret.rolling(w).corr(r).mul(sign, axis=0)
+
+    for w in (21, 63):
+        _F(z, f"goldregime_{w}", "crossasset", CA, lambda p, w=w: _regime(p, "PAXGUSDT", w))
+        _F(z, f"usdregime_{w}", "crossasset", CA, lambda p, w=w: _regime(p, "EURUSDT", w))
+
+    def _relcarry(p, w):
+        f = _fund(p)
+        a = _anchor(p)
+        if a not in f.columns:
+            return pd.DataFrame(np.nan, index=p.close.index, columns=p.close.columns)
+        return ops.ts_mean(f, w).sub(ops.ts_mean(f[a], w), axis=0).fillna(0.0)
+
+    for w in (7, 30):
+        _F(z, f"relcarry_{w}", "crossasset", CA, lambda p, w=w: _relcarry(p, w))
+
     # baselines (sanity anchors mirroring alphas.py signals)
     _F(z, "base_xsmom_28", "baseline", IN, lambda p: p.close.pct_change(28))
     _F(z, "base_carry_3", "baseline", IN, lambda p: ops.ts_mean(_fund(p), 3).fillna(0.0))

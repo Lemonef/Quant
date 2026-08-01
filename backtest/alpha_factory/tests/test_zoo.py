@@ -23,3 +23,24 @@ def test_every_factor_computes_and_is_causal():
         a = full.iloc[:cut]
         b = part
         pd.testing.assert_frame_equal(a, b, check_exact=False, atol=1e-10, obj=f.name)
+
+
+def test_crossasset_family_present_and_regime_signed():
+    from alpha_factory.zoo import build_zoo
+    zoo = build_zoo()
+    byname = {f.name: f for f in zoo}
+    for n in ("goldregime_21", "goldregime_63", "usdregime_21", "usdregime_63",
+              "relcarry_7", "relcarry_30"):
+        assert n in byname, n
+        assert byname[n].family == "crossasset"
+
+
+def test_crossasset_nan_without_reference_asset():
+    # synthetic panel has no PAXGUSDT/EURUSDT — reference-based factors must
+    # compute (all-NaN) instead of raising, so the factory can judge coverage
+    from alpha_factory.zoo import build_zoo
+    from alpha_factory.panel import build_synth_panel
+    panel, _ = build_synth_panel(n_days=200, seed=5)
+    f = next(f for f in build_zoo() if f.name == "goldregime_21")
+    out = f.fn(panel)
+    assert out.isna().all().all()
