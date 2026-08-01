@@ -67,3 +67,42 @@ surprises.
 
 Options-derived factors (separate queue item), order-book/L2 models (parked,
 infra-heavy), any live deployment decision (owner-gated regardless of results).
+
+---
+
+## Execution log (updated 2026-08-01, same day)
+
+| Track | Verdict | Evidence |
+|---|---|---|
+| A meta-labeling (rsi2dip) | **DEAD at kill test** | precision 0.648 vs base 0.627, z 0.86 < 1.645 (584 OOS entries) |
+| B turnover-aware translation | **DEAD at kill test** | recovered ~1.3 Sharpe of cost drag (raw −1.39 → −0.13) but no variant crossed zero; one OOS era negative in all variants |
+| C learned regime gate | **DEAD at kill test** | ungated book OOS Sharpe 1.79 → gated −1.60, 4× DD; churn without skill. Kill line hardened (always-flat gaming caught by the noise test) |
+| D turning-point extrema | designed below — not built | — |
+
+Three clean kills sharpen the picture: the book's mechanism edges are real
+(OOS Sharpe 1.79 stands un-improved), and daily-frequency PREDICTION on this
+panel keeps failing regardless of model shape. Track D is the owner's direct
+ask and the hardest sub-case; it proceeds design-first with the cheapest
+possible kill test.
+
+## Track D design (the "long near low / short near high" model)
+
+- **Labels:** swing extrema on the anchor series via a zigzag filter whose
+  reversal threshold derives from realized vol (k × vol20; no fixed-percent
+  magic number). Positive class = "within Z days of a confirmed swing low"
+  (mirror for highs). Labels are confirmed only after the reversal completes —
+  the label date PRECEDES confirmation, so training uses purged walk-forward
+  with an embargo of the confirmation lag, like every model above.
+- **Features:** regime.py feature set + short-horizon stretch stats (distance
+  from rolling extremes, run-length of consecutive down days, vol-of-vol).
+- **Cheap kill test:** OOS precision on "near-low" beats base rate by
+  >= META_Z standard errors AND a toy overlay (enter at predicted lows, exit at
+  predicted highs, net of costs) beats buy-and-hold of the anchor on Sharpe.
+  Both legs must pass; either failing kills the track — and with it the
+  quant-side perfect-model program (verdict recorded, dream priced).
+
+## Companion doc
+
+The SPIKE-side perfect model (stocks: entry spike-probability + exit
+peak-proximity) is a separate workstream with its own data problem (PIT stock
+corpus); see `2026-08-01-perfect-model-spike-design.md`.
