@@ -18,6 +18,10 @@ BOOT_SEED = 20260724           # fixed seed: scoreboard must be reproducible run
 NOISE_N = 5                    # seeded price-noise re-runs per survivor (median Sharpe reported); noise sigma = SLIPPAGE — perturb at execution-uncertainty scale, no separate tunable
 CSCV_BLOCKS = 12               # contiguous time blocks for CSCV/PBO (must be even — pbo_cscv raises otherwise; C(12,6)=924 balanced splits)
 BOOT_DD_Q = 0.95               # worst-plausible drawdown quantile; the maxdd_p95 column name mirrors this — change together
+ML_MAX_ITER = 200              # HistGB boosting rounds — small on purpose; the ranker must survive validation, not win in-sample
+ML_LEARNING_RATE = 0.05        # HistGB shrinkage
+ML_MAX_DEPTH = 3               # shallow trees: interactions allowed, memorization not
+ML_MIN_TRAIN_DAYS = 250        # skip a fold with less history; mirrors MIN_OBS_DAYS — change together
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (

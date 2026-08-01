@@ -9,6 +9,8 @@ def main():
     ap.add_argument("--data-dir", default=str(Path(__file__).resolve().parents[1] / "data"))
     ap.add_argument("--out", default=str(Path(__file__).resolve().parents[2] / "backtest_results"))
     ap.add_argument("--synth", action="store_true", help="run on synthetic data (demo/self-check)")
+    ap.add_argument("--ml", action="store_true",
+                    help="append the ML ranker candidates (one per horizon) to the zoo")
     a = ap.parse_args()
     if a.synth:
         from .panel import build_synth_panel
@@ -17,6 +19,9 @@ def main():
         from .panel import build_panel
         panel = build_panel(a.data_dir)
     zoo = build_zoo()
+    if a.ml:
+        from .ranker import ml_factors
+        zoo += ml_factors(build_zoo(), cfg)   # features = the plain zoo, never the ranker itself
     print(f"panel: {len(panel.close)} days x {len(panel.coins)} coins · zoo: {len(zoo)} factors")
     df = run_speeds(panel, zoo, cfg)
     stamp = dt.date.today().isoformat()
