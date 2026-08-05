@@ -1,7 +1,7 @@
 {
   "stocks": {
-    "built_utc": "2026-08-05 10:44 UTC",
-    "data_asof": "2026-08-04",
+    "built_utc": "2026-08-05 14:27 UTC",
+    "data_asof": "2026-08-05",
     "n_positions": 5,
     "tickers": [
       "LEU",
@@ -13,13 +13,13 @@
     "ok": true
   },
   "scans": {
-    "built_utc": "2026-08-05 10:44 UTC",
+    "built_utc": "2026-08-05 14:27 UTC",
     "newest_report": "2026-08-05",
     "n_reports": 66,
     "ok": true
   },
   "crypto_bot": {
-    "updated": "2026-08-05T10:44",
+    "updated": "2026-08-05T14:27",
     "regime": "bull",
     "open_positions": 2,
     "total_trades": 24,
