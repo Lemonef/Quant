@@ -26,12 +26,17 @@ def _get(url):
 def collect():
     OUT.mkdir(parents=True, exist_ok=True)
     for sym in SYMBOLS:
-        oi = {r["timestamp"]: r for r in
-              _get(f"{FAPI}/openInterestHist?symbol={sym}&period=1d&limit=30")}
-        gl = {r["timestamp"]: r for r in
-              _get(f"{FAPI}/globalLongShortAccountRatio?symbol={sym}&period=1d&limit=30")}
-        tp = {r["timestamp"]: r for r in
-              _get(f"{FAPI}/topLongShortPositionRatio?symbol={sym}&period=1d&limit=30")}
+        # Codex-audit hardening 1: one symbol's outage must not abort the rest
+        try:
+            oi = {r["timestamp"]: r for r in
+                  _get(f"{FAPI}/openInterestHist?symbol={sym}&period=1d&limit=30")}
+            gl = {r["timestamp"]: r for r in
+                  _get(f"{FAPI}/globalLongShortAccountRatio?symbol={sym}&period=1d&limit=30")}
+            tp = {r["timestamp"]: r for r in
+                  _get(f"{FAPI}/topLongShortPositionRatio?symbol={sym}&period=1d&limit=30")}
+        except Exception as e:
+            print(f"WARN {sym}: fetch failed ({e}) — skipped this run, next run backfills")
+            continue
         path = OUT / f"{sym}_positioning.csv"
         seen = set()
         if path.exists():
@@ -42,10 +47,13 @@ def collect():
             w = csv.writer(f)
             if not seen:
                 w.writerow(FIELDS)
-            for ts in sorted(set(oi) | set(gl) | set(tp)):
+            # Codex-audit hardening 2: write only ts present in ALL THREE endpoints —
+            # a partial row would be sealed forever by the de-dup and never healed;
+            # an unwritten ts is re-fetched inside the 30d window next run
+            for ts in sorted(set(oi) & set(gl) & set(tp)):
                 if str(ts) in seen:
                     continue
-                o, g, t = oi.get(ts, {}), gl.get(ts, {}), tp.get(ts, {})
+                o, g, t = oi[ts], gl[ts], tp[ts]
                 w.writerow([ts, o.get("sumOpenInterest"), o.get("sumOpenInterestValue"),
                             g.get("longAccount"), g.get("longShortRatio"),
                             t.get("longAccount"), t.get("longShortRatio")])
