@@ -25,8 +25,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: collect snapshot
+      - name: collect options snapshot
         run: python backtest/collect_options.py
+
+      - name: collect perp positioning
+        run: python backtest/collect_positioning.py
 
       - name: commit data
         run: |
