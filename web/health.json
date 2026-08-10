@@ -1,25 +1,25 @@
 {
   "stocks": {
-    "built_utc": "2026-08-09 20:45 UTC",
+    "built_utc": "2026-08-10 02:27 UTC",
     "data_asof": "2026-08-07",
     "n_positions": 5,
     "tickers": [
       "LEU",
       "MP",
+      "RCAT",
       "KTOS",
-      "MOD",
-      "RCAT"
+      "MOD"
     ],
     "ok": true
   },
   "scans": {
-    "built_utc": "2026-08-09 20:45 UTC",
-    "newest_report": "2026-08-09",
-    "n_reports": 70,
+    "built_utc": "2026-08-10 02:27 UTC",
+    "newest_report": "2026-08-10",
+    "n_reports": 72,
     "ok": true
   },
   "crypto_bot": {
-    "updated": "2026-08-09T20:45",
+    "updated": "2026-08-10T02:27",
     "regime": "bull",
     "open_positions": 2,
     "total_trades": 30,
