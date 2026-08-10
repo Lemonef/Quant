@@ -31,6 +31,9 @@ BAND_EXIT_MULT = 2             # hysteresis: exit only past rank K*this (enter t
 REGIME_H = 5                   # Track C label horizon: sign of the next 5d book return
 EXTREMA_K = 3                  # zigzag reversal threshold = K x vol20 (swings must clear noise; vol-derived, not fixed-percent)
 EXTREMA_Z = 3                  # "near an extremum" label window, days each side
+LEADLAG_W = 28                 # cross-asset reference trend window (days) — mirrors the momentum family's 28d window (zoo.py mom_28 and the _regime sign): change together
+LEADLAG_T_MIN = 2.0            # two-sided t floor for the lead-lag kill line; below it the conditional return gap is not separable from noise
+LEADLAG_HORIZONS = (1, 5)      # forward horizons judged — the fast subset of HORIZONS: a dollar-liquidity/risk-off flow slower than a week is not a tradable lead, and at 20d the overlap correction leaves too few independent observations
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (
