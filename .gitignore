@@ -20,3 +20,8 @@ Thumbs.db
 
 # Multi-agent bridge state file
 agent-chat.md
+
+# options snapshots are the accrued HISTORY the public API lacks — they must be committed
+!backtest/data/
+backtest/data/*
+!backtest/data/options/

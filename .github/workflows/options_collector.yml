@@ -1,0 +1,38 @@
+name: options-collector
+
+# Daily Deribit chain + DVOL snapshot — accrues the history the public API
+# lacks, so options-derived factors (GEX, max-pain, skew, IV percentile) can
+# be backtested once enough days exist. Isolated from paper-bot on purpose.
+on:
+  schedule:
+    - cron: "15 0 * * *"      # daily 00:15 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: options-collector
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: collect snapshot
+        run: python backtest/collect_options.py
+
+      - name: commit data
+        run: |
+          git config user.name "options-collector"
+          git config user.email "actions@users.noreply.github.com"
+          git add backtest/data/options/
+          git diff --cached --quiet || git commit -m "options snapshot $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git pull --rebase origin main
+          git push
