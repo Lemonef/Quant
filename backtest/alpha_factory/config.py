@@ -35,6 +35,13 @@ LEADLAG_W = 28                 # cross-asset reference trend window (days) — m
 LEADLAG_T_MIN = 2.0            # two-sided t floor for the lead-lag kill line; below it the conditional return gap is not separable from noise
 LEADLAG_HORIZONS = (1, 5)      # forward horizons judged — the fast subset of HORIZONS: a dollar-liquidity/risk-off flow slower than a week is not a tradable lead, and at 20d the overlap correction leaves too few independent observations
 OOS_SPLIT = 0.6                # incumbent-book OOS split point, mirrors alphas.py
+VOLMODEL_H = 5                 # next-period realized-vol horizon: one crypto trading week
+VOLMODEL_HIST_DAYS = 20        # historical-vol baseline: conventional trailing one-month crypto window
+VOLMODEL_EWMA_LAMBDA = 0.94    # daily variance decay from RiskMetrics Technical Document (1996)
+VOLMODEL_LEVERAGE_CAP = 1.0    # application is de-risking only: never lever the incumbent book up
+VOLMODEL_DVOL_START = "2021-04-01"  # Deribit BTC DVOL daily history begins in April 2021
+VOLMODEL_CACHE_DAYS = 1        # daily series is fresh until the next UTC daily observation can exist
+VOLMODEL_EPS = 1e-12           # numerical floor for zero realized/forecast variance in loss functions
 EVAL_WINDOW_START = "2023-01-01"  # universe additions must be listed before this date
 SURVIVORSHIP_CAVEAT = (
     "Universe selected from currently-liquid Binance pairs listed before "
