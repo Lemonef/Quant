@@ -81,6 +81,30 @@ def parse_positions(brain):
                 book=section,
                 note=re.sub(r"\s+", " ", cells[4])[:240],
             ))
+    # CLOSED table -> exited rows (the "Exited" tab was permanently 0 because this
+    # table was never parsed; schema: | Ticker | Type | Entry $ | Exit $ | P&L% | R | MFE/MAE | Held | Lesson |)
+    in_closed = False
+    for line in text.splitlines():
+        if line.startswith("## CLOSED"):
+            in_closed = True; continue
+        if in_closed and line.startswith("##"):
+            break
+        if in_closed and line.strip().startswith("|"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) < 8 or cells[0] in ("Ticker", "") or cells[0].startswith("-"):
+                continue
+            tk = re.sub(r"[^A-Z]", "", cells[0].upper())[:6]
+            entry, exit_px = first_price(cells[2]), first_price(cells[3])
+            if entry is None or exit_px is None:
+                continue
+            hm = re.search(r"\((\d{2}-\d{2})→(\d{2}-\d{2})\)", cells[7])
+            rows.append(dict(
+                ticker=tk, name=cells[0],
+                entry_date="2026-" + hm.group(1) if hm else "",
+                entry=entry, flavor=cells[8][:60], closed=True, status="EXITED",
+                exit=exit_px, exit_date="2026-" + hm.group(2) if hm else None,
+                size_baht=None, book=cells[1].upper() or "PAPER",
+                note=re.sub(r"\s+", " ", cells[8])[:240]))
     return rows
 
 
