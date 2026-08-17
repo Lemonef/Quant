@@ -25,3 +25,6 @@ agent-chat.md
 !backtest/data/
 backtest/data/*
 !backtest/data/options/
+
+.venv312/
+tests/web/
