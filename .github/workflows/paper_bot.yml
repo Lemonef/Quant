@@ -47,6 +47,9 @@ jobs:
           fi
           rm -rf _brain
 
+      - name: Strategy decay monitor -> web/decay.json (never fatal)
+        run: python backtest/decay_monitor.py || echo "decay monitor failed (non-fatal)"
+
       - name: Crypto-bot heartbeat -> health.json
         run: |
           python - <<'PY'

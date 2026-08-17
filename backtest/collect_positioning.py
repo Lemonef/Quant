@@ -5,8 +5,15 @@ long/short positions). Binance's futures/data endpoints serve only ~30 days of
 the full available window and de-duplicates on timestamp, which also
 self-heals any missed cron days. Appends to
 backtest/data/options/<SYMBOL>_positioning.csv (same committed dataset dir).
-Stdlib only — no CI dependencies."""
-import csv, json, urllib.request
+Stdlib only — no CI dependencies.
+
+★ 2026-08-18 SOURCE SWITCH: fapi.binance.com returns HTTP 451 (geo-block) from GitHub's
+US runners since ~2026-08-10, which silently killed this collector while its 30d-window
+"self-heal" could never fire. Primary source is now the daily-cron call of
+backfill_metrics.py (data.binance.vision CDN — not geo-blocked, history to 2021-01, so
+the accrual constraint is gone entirely). This legacy API path is kept as a SECONDARY
+attempt for the old CSV schema; its failure is a WARN, never fatal."""
+import csv, json, subprocess, sys as _sys, urllib.request
 from pathlib import Path
 
 FAPI = "https://fapi.binance.com/futures/data"
@@ -25,6 +32,16 @@ def _get(url):
 
 def collect():
     OUT.mkdir(parents=True, exist_ok=True)
+    # PRIMARY (2026-08-18): Vision-dump incremental backfill — geo-block-proof, and it
+    # also retro-fills the 08-10..08-17 hole this collector's death left.
+    try:
+        r = subprocess.run([_sys.executable, str(Path(__file__).parent / "backfill_metrics.py")],
+                           capture_output=True, text=True, timeout=1200)
+        print(r.stdout.strip()[-2000:] or "(backfill: no stdout)")
+        if r.returncode != 0:
+            print(f"WARN backfill_metrics failed rc={r.returncode}: {r.stderr.strip()[-500:]}")
+    except Exception as e:
+        print(f"WARN backfill_metrics crashed: {e}")
     for sym in SYMBOLS:
         # Codex-audit hardening 1: one symbol's outage must not abort the rest
         try:
