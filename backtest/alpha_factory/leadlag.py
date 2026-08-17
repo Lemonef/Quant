@@ -88,7 +88,9 @@ def overlay_returns(anchor_ret, signal, favorable, cfg):
     Warmup NaNs read as not-favorable, i.e. flat."""
     pos = (signal == favorable).astype(float)
     flips = pos.diff().abs().fillna(0.0)
-    return pos.shift(1).fillna(0.0) * anchor_ret - flips * (cfg.TAKER_FEE + cfg.SLIPPAGE)
+    # cost charged on the EXECUTION bar (t+1), same bar the return is earned — a flip
+    # decided at close t pays when it trades (2026-08-18 audit #5 alignment fix)
+    return pos.shift(1).fillna(0.0) * anchor_ret - flips.shift(1).fillna(0.0) * (cfg.TAKER_FEE + cfg.SLIPPAGE)
 
 
 def leadlag_kill(panel, cfg):

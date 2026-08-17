@@ -42,6 +42,17 @@ def collect():
             print(f"WARN backfill_metrics failed rc={r.returncode}: {r.stderr.strip()[-500:]}")
     except Exception as e:
         print(f"WARN backfill_metrics crashed: {e}")
+    # audit #3: a green run that advanced nothing is a silent outage — fail loudly if the
+    # newest metrics row is older than 3 days (Vision publishes T+1; 3 = weekend slack)
+    import csv as _csv, datetime as _dt
+    newest = None
+    for f in OUT.glob("*_metrics_daily.csv"):
+        with f.open(encoding="utf-8") as fh:
+            for row in _csv.DictReader(fh):
+                if newest is None or row["date"] > newest:
+                    newest = row["date"]
+    if newest is None or (_dt.date.today() - _dt.date.fromisoformat(newest)).days > 3:
+        raise SystemExit(f"FATAL: metrics dataset stale (newest={newest}) — collector must not report green")
     for sym in SYMBOLS:
         # Codex-audit hardening 1: one symbol's outage must not abort the rest
         try:

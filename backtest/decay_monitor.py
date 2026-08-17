@@ -76,7 +76,7 @@ def assess(level, today):
     w_rets = rets[-(DECAY_WINDOW_D - 1):]
     tsh = _sharpe(w_rets)
     tdd = _maxdd(w_eqs)
-    peak_i = max(range(len(eqs)), key=lambda i: eqs[i])
+    peak_i = max(range(len(eqs)), key=lambda i: (eqs[i], i))   # LATEST high (audit #9)
     tuw = (today - dt.date.fromisoformat(days[peak_i])).days
     full = len(w_days) >= DECAY_WINDOW_D
     status = "HEALTHY"

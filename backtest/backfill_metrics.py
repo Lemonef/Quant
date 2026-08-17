@@ -85,7 +85,9 @@ def run(symbols, full):
     for sym in symbols:
         path = OUTDIR / f"{sym}_metrics_daily.csv"
         seen = have_dates(path)
-        start = EARLIEST if (full or not seen) else dt.date.fromisoformat(max(seen))
+        # audit #2: ALWAYS enumerate the full span — `todo` is the set difference, so a
+        # historical day that failed once is retried on every run, not orphaned
+        start = EARLIEST
         days = [start + dt.timedelta(days=i) for i in range((yesterday - start).days + 1)]
         todo = [d for d in days if d.isoformat() not in seen]
         print(f"{sym}: {len(seen)} rows on disk, {len(todo)} days to fetch "

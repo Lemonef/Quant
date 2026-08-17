@@ -105,7 +105,8 @@ def build_signals(panel):
     sigs, spans = {}, {}
 
     stab = load_stablecoins()
-    sigs["stable_flow"] = np.sign(on_idx(stab).pct_change(W))
+    # audit #6: same-day EOD availability unverified — lag 1d like the metrics legs
+    sigs["stable_flow"] = np.sign(on_idx(stab).pct_change(W)).shift(1)
 
     met = load_metrics("BTCUSDT")
     for name, col in (("oi_flow", "sum_open_interest"),
@@ -156,7 +157,9 @@ def run_kill(panel, sigs):
             r["fold_signs"] = fs
             r["folds_agree"] = bool(np.isfinite(r["diff"]) and fs
                                     and all(f == np.sign(r["diff"]) for f in fs))
-            tr = diff_means_t(fwd.reindex(train), s.reindex(train), h)
+            # audit #1: the last h train rows have forward returns crossing into OOS —
+            # they may not inform the traded-side choice
+            tr = diff_means_t(fwd.reindex(train[:-h]), s.reindex(train[:-h]), h)
             r["favorable_sign"] = -1.0 if (tr["diff"] < 0) else 1.0
             ov = overlay_returns(a_ret, s, r["favorable_sign"], cfg).reindex(oos)
             r["n_oos_days"] = int(ov.notna().sum())

@@ -59,7 +59,7 @@ def overlay_excess(panel, sig, extra_lag=0):
     cut = int(len(naive) * cfg.OOS_SPLIT)
     train, oos = naive[:cut], naive[cut:]
     fwd = a_close.pct_change(1).shift(-1)
-    tr = diff_means_t(fwd.reindex(train), s.reindex(train), 1)
+    tr = diff_means_t(fwd.reindex(train[:-1]), s.reindex(train[:-1]), 1)  # audit #1
     fav = -1.0 if (tr["diff"] < 0) else 1.0
     ov = overlay_returns(a_ret, s, fav, cfg)
     return (ov - a_ret).reindex(oos).dropna()
