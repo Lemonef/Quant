@@ -208,6 +208,9 @@ def main():
     out = []
     for h in positions:
         series = hist(h["ticker"])
+        if not series and not h["closed"]:
+            series = hist(h["ticker"])                                    # one retry — transient yf misses were shipping pnl=0.0 pages
+        h["price_missing"] = bool(not series and not h["closed"])
         cur = series[-1][1] if series else h["entry"]                     # no valid prices → fall back to entry (never NaN)
         if cur is None or cur != cur:                                     # cur!=cur catches NaN
             cur = h["entry"]
@@ -226,6 +229,26 @@ def main():
     CAP = json.dumps(cap)
     build_utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     asof = max((o["series"][-1][0] for o in out if o["series"]), default="no-data")
+    # HEALTH GUARD (Zen 2026-08-18: "make sure nothing breaks"): a missing price or an
+    # Exited tab smaller than the ledger's CLOSED table is a DATA BUG, not a market fact —
+    # surface it on the page banner + stderr instead of rendering a silent 0.
+    health = []
+    missing = [o["ticker"] for o in out if o.get("price_missing")]
+    if missing:
+        health.append("PRICE MISSING for " + ", ".join(missing) + " — %P&L shown is the ENTRY fallback, not live")
+    n_closed_page = sum(1 for o in out if o["closed"])
+    try:
+        txt = (brain / "memory" / "paper-trades.md").read_text(encoding="utf-8")
+        sec = txt.split("## CLOSED", 1)[1].split(chr(10) + "## ", 1)[0]
+        ledger_closed = sum(1 for ln in sec.splitlines()
+                            if ln.strip().startswith("|") and "Ticker |" not in ln
+                            and "---" not in ln and ln.count("|") >= 8)
+        if ledger_closed and n_closed_page < ledger_closed:
+            health.append(f"Exited tab {n_closed_page} < ledger CLOSED {ledger_closed} — parser drift")
+    except Exception:
+        pass
+    if health:
+        print("HEALTH WARNING: " + " | ".join(health), file=__import__("sys").stderr)
 
     html = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -288,7 +311,7 @@ def main():
 <footer>Built from the brain ledger · prices via yfinance · paper only · not financial advice · Lemonef/Quant</footer>
 </div>
 <script>
- const DATA=__DATA__, CAP=__CAP__, ASOF="__ASOF__", BUILT="__BUILT__";
+ const DATA=__DATA__, CAP=__CAP__, ASOF="__ASOF__", BUILT="__BUILT__", HEALTH="__HEALTH__";
  let posTab="current";
  let sel=DATA.find(o=>!o.closed)||DATA[0];
  const B=v=>(v==null?"—":(v<0?"-":"")+"฿"+Math.abs(v).toLocaleString());
@@ -307,7 +330,7 @@ def main():
   const stale=wd>2;   // >2 trading days with no new close = genuinely stale (tolerates a single holiday)
   fb.className="freshbar "+(stale?"stale":"ok");
   fb.innerHTML=(stale?"⚠️ STALE — no new close in "+wd+" trading days":"✓ Fresh — last close "+ASOF)+
-    ' <span class="sub">· data as-of '+ASOF+' · page built '+BUILT+(stale?' · auto-rebuild may have failed — prices below are NOT current, do not trade off them':'')+'</span>';
+    ' <span class="sub">· data as-of '+ASOF+' · page built '+BUILT+(stale?' · auto-rebuild may have failed — prices below are NOT current, do not trade off them':'')+(HEALTH?' · ⚠ '+HEALTH:'')+'</span>';
  })();
  const f=(v,s="")=>{const c=v>0?"pos":(v<0?"neg":"");return `<span class="${c}">${v}${s}</span>`};
  function draw(h){
@@ -368,7 +391,8 @@ def main():
 </script>
 <script type="module" src="./anim.js"></script>
 </body></html>"""
-    page = html.replace("__DATA__", DATA).replace("__CAP__", CAP).replace("__ASOF__", asof).replace("__BUILT__", build_utc)
+    page = (html.replace("__DATA__", DATA).replace("__CAP__", CAP).replace("__ASOF__", asof)
+            .replace("__BUILT__", build_utc).replace("__HEALTH__", " | ".join(health)))
     Path("web/stocks.html").write_text(page, encoding="utf-8")
     _write_health("stocks", {"built_utc": build_utc, "data_asof": asof,
                              "n_positions": len(out),
