@@ -1,0 +1,1 @@
+- 2026-08-18 · [manual] · web stocks dashboard fix: gen_stocks.py now parses the CLOSED table — Exited tab no longer stuck at 0 (Zen bug report)
