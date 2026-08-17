@@ -4,12 +4,12 @@ Candidate: sign of 28d change in BTC quarterly-futures basis, long on the train-
 
 | gate | measured | line | pass |
 |---|---|---|---|
-| G1 bootstrap | excess Sharpe CI [-0.39, 1.43], worst-DD p95 56.9% | CI low > 0 | ❌ |
+| G1 bootstrap | excess Sharpe CI [-0.39, 1.43], worst-DD p95 57.0% | CI low > 0 | ❌ |
 | G2 lag t+2 | excess Sharpe 0.47 | > 0 | ✅ |
 | G3 input noise ×5 | median excess Sharpe 0.42 (min 0.35) | median > 0 | ✅ |
 | G4 plateau 21/28/35d | excess Sharpe 0.21 / 0.51 / 0.36 | all > 0 (no cliff) | ✅ |
-| G5 CSCV/PBO (6 trial columns, 8 blocks) | PBO 0.09 | <= 0.25 | ✅ |
-| G6 Hansen SPA (6 cols) | p 0.303 | <= 0.1 | ❌ |
+| G5 CSCV/PBO (6 trial columns, 8 blocks) | PBO 0.23 | <= 0.25 | ✅ |
+| G6 Hansen SPA (6 cols) | p 0.419 | <= 0.1 | ❌ |
 
 ## VERDICT: **DEAD — logged to the graveyard**
 
