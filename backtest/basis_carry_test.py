@@ -45,7 +45,7 @@ from alpha_factory import config as cfg
 DATA = HERE / "data" / "basis"
 RESULTS = HERE.parent / "backtest_results"
 BASE = "https://data.binance.vision/data/futures/um/monthly/klines"
-SYM = "BTCUSDT"
+SYM = sys.argv[1].upper() if len(sys.argv) > 1 and sys.argv[1].upper().endswith("USDT") else "BTCUSDT"
 MIN_DTE_ENTRY = 20
 EXIT_DTE = 5
 LEGS = 4                                # spot buy, fut sell, fut buy, spot sell
@@ -106,7 +106,7 @@ def fetch_contract(code, delivery):
 def spot_series():
     from alpha_factory.panel import build_panel
     panel = build_panel(HERE / "data")
-    s = panel.close["BTCUSDT"]
+    s = panel.close[SYM]
     s.index = pd.DatetimeIndex(s.index).tz_localize(None).normalize()
     return s
 
@@ -123,7 +123,7 @@ def replay_contract(fut, spot, delivery, exit_dte):
     df["hurdle_ann"] = LEGS * COST_LEG * 365.0 / df["dte"].clip(lower=1)
     cand = df[(df["dte"] >= MIN_DTE_ENTRY) & (df["basis_ann"] > df["hurdle_ann"])]
     if cand.empty:
-        return dict(code=None, entered=False)
+        return dict(entered=False)
     e = cand.index[0]
     x = df.index[-1]                                       # last bar with dte >= exit_dte
     Fe, Se, Fx, Sx = df.loc[e, "F"], df.loc[e, "S"], df.loc[x, "F"], df.loc[x, "S"]
@@ -171,8 +171,8 @@ def main():
     passes = (s5["n"] > 0 and s5["pos"] / s5["n"] >= 0.8 and s5["mean_ann"] > 0
               and s5["ci_lo"] > 0 and s5["oos_mean_ann"] > 0)
     tdy = today.isoformat()
-    p = RESULTS / f"BASIS_CARRY_{tdy}.md"
-    L = [f"# Quarterly basis cash-and-carry — per-contract kill test — {tdy}", "",
+    p = RESULTS / f"BASIS_CARRY_{SYM}_{tdy}.md"
+    L = [f"# Quarterly basis cash-and-carry — {SYM} per-contract kill test — {tdy}", "",
          f"Rule (declared): enter first day with DTE≥{MIN_DTE_ENTRY} and annualized basis > "
          f"{LEGS}-leg cost hurdle ({COST_LEG:.4%}/leg = fee+slip); exit at DTE={EXIT_DTE} "
          "(boyam01 convention) — 'hold' variant to delivery also shown. Unlevered on spot "
