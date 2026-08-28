@@ -109,16 +109,28 @@ def parse_positions(brain):
 
 
 def parse_capital(brain):
-    """Pull the money headline from paper-trades.md RUNNING TOTAL (sleeve / dry / realized, in ฿)."""
+    """Pull the money headline from paper-trades.md RUNNING TOTAL (sleeve / dry / realized, in ฿).
+
+    2026-08-28 fix: the ledger's actual wording is "current ~97,900฿ sleeve" (figure THEN
+    the word "sleeve"), never the literal phrase "sleeve value" this regex was written
+    against -> sleeve always parsed None, page always showed "-". Primary pattern now
+    matches the real wording; falls back to deployed+dry (both present in every RUNNING
+    TOTAL revision) if that ever drifts again, so the stat degrades gracefully instead of
+    silently returning null."""
     text = (brain / "memory" / "paper-trades.md").read_text(encoding="utf-8")
     def baht(pat):
         m = re.search(pat, text)
         if not m:
             return None
         return int(m.group(1).replace(",", "").replace("−", "-").replace("−", "-"))
+    sleeve = baht(r"~([0-9,]+)\s*฿\s*sleeve") or baht(r"[Ss]leeve value[^0-9~]*~?\s*([0-9,]+)\s*฿")
+    dry = baht(r"[Dd]ry powder[^0-9~]*~?\s*([0-9,]+)\s*฿")
+    deployed = baht(r"[Dd]eployed cost[^0-9~]*~?\s*([0-9,]+)\s*฿")
+    if sleeve is None and deployed is not None and dry is not None:
+        sleeve = deployed + dry
     return {
-        "sleeve":   baht(r"[Ss]leeve value[^0-9~]*~?\s*([0-9,]+)\s*฿"),
-        "dry":      baht(r"[Dd]ry powder[^0-9~]*~?\s*([0-9,]+)\s*฿"),
+        "sleeve":   sleeve,
+        "dry":      dry,
         "realized": baht(r"[Rr]ealized P&L[^0-9\-−]*([\-−]?[0-9,]+)\s*฿"),
     }
 
