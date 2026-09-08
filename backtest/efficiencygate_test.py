@@ -52,7 +52,7 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 RESULTS = HERE.parent / "backtest_results"
 ER_Q = 0.5              # efficiency-ratio threshold: net progress >= half the path length
 ER_WINDOW = 20           # bars — matches extrema's vol20 / flipgate's VOL_SHORT_BARS
-SERIES = (("BTCUSDT_1h", "1h"), ("BTCUSDT_4h", "4h"))
+SERIES = (("BTCUSDT_1h", "1h"), ("BTCUSDT_4h", "4h"), ("BTCUSDT_1d", "1d"))
 
 
 def load_close(name):
