@@ -561,7 +561,7 @@ def cycle():
             cs=states[acct("trend",L)]["coins"][c]
             if cs["units"]>0:
                 cs["peak"]=max(cs["peak"],high); cs["trough"]=min(cs.get("trough") or cs["entry"],low); cs["bars"]=cs.get("bars",0)+1
-                stop_hit=low<cs["stop"]
+                stop_hit=low<=cs["stop"]   # TOUCH triggers a stop, not a strict breach (Codex cross-check 2026-10-06)
                 if trend_exit or stop_hit:
                     # A stop is an INTRABAR event: it triggers on the bar LOW, so it cannot fill at the
                     # bar CLOSE. Booking the close let a wick-and-recover bar exit ABOVE the stop - a price
