@@ -191,22 +191,51 @@ def pnls(a):
                     try: out.append(float(row["pnl"]))
                     except ValueError: pass
     return out
+FUNDING_PERIODS_PER_DAY_NOMINAL=3   # Binance funding prints every 8h; fallback only - periods with
+                                    # no ETH print are skipped, so measure the real cadence when you can
+CYCLES_PER_DAY_NOMINAL=6   # what the cron PROMISES (.github/workflows/paper_bot.yml: 5 */4 * * *).
+                           # Never annualise with this: GitHub Actions delays and drops scheduled
+                           # runs, so real delivery has been ~4.9/day. Measured cadence wins; this
+                           # is only the fallback when a series is too short to measure.
+
+def _span_days(series):
+    """Real wall-clock span of an equity series, in days.
+
+    Annualising off len(series)/(365*6) assumed every promised cycle ran. ~17% never did, so the
+    window was understated by the same ~17% and every CAGR/Sharpe on the board was inflated
+    (audit 2026-10-03 FINDING 1). Timestamps are the only honest source of elapsed time.
+    Series carry two shapes: full ISO with offset (the equity CSVs) and 'YYYY-MM-DDTHH:MM'
+    (everything built in-process), so normalise to naive UTC before subtracting.
+    """
+    def _dt(v):
+        d=datetime.fromisoformat(str(v))
+        return d.astimezone(timezone.utc).replace(tzinfo=None) if d.tzinfo else d
+    try:
+        d=(_dt(series[-1][0])-_dt(series[0][0])).total_seconds()/86400.0
+        return d if d>0 else 0.0
+    except Exception:
+        return 0.0
+
 def block(name,series,total,derived=False):
     ev=[s[1] for s in series]; mdd=0.0
     if len(ev)>1:
         pk=ev[0]
         for v in ev: pk=max(pk,v); mdd=min(mdd,v/pk-1)
-    yrs=max(len(ev),1)/(365*6); cagr=((total/START)**(1/yrs)-1) if (yrs>0 and total>0 and len(ev)>=60) else 0.0  # guard: don't annualize warmup (few bars -> nonsense CAGR)
-    # Sharpe from per-cycle (4h) equity returns, annualised (6 cycles/day)
+    span=_span_days(series)                                    # REAL elapsed, not an assumed cadence
+    cpd=(len(ev)-1)/span if (span>0 and len(ev)>1) else CYCLES_PER_DAY_NOMINAL   # MEASURED cycles/day
+    yrs=span/365.0 if span>0 else max(len(ev),1)/(365.0*CYCLES_PER_DAY_NOMINAL)
+    cagr=((total/START)**(1/yrs)-1) if (yrs>0 and total>0 and len(ev)>=60) else 0.0  # guard: don't annualize warmup (few bars -> nonsense CAGR)
+    # Sharpe from per-cycle equity returns, annualised at the cadence the series ACTUALLY ran at.
     sh=0.0
     if len(ev)>=60:  # guard: warmup Sharpe on a few bars is nonsense (-> -68 etc.)
         rr=np.array([ev[i]/ev[i-1]-1 for i in range(1,len(ev)) if ev[i-1]])
-        if len(rr)>2 and rr.std()>0: sh=max(min(float(rr.mean()/rr.std()*np.sqrt(6*365)),5.0),-5.0)  # cap ±5 (near-constant series -> giant fake Sharpe)
+        if len(rr)>2 and rr.std()>0: sh=max(min(float(rr.mean()/rr.std()*np.sqrt(cpd*365)),5.0),-5.0)  # cap ±5 (near-constant series -> giant fake Sharpe)
     pl=pnls(name); wins=[x for x in pl if x>0]; los=[x for x in pl if x<=0]
     wr=len(wins)/len(pl)*100 if pl else 0.0
     pf=sum(wins)/abs(sum(los)) if los and sum(los)!=0 else (0.0 if not wins else 99.99)  # cap (no-loss = "infinite" PF); avoid alarming 999 sentinel
     pf=min(pf,99.99)  # never display absurd profit-factor
     return dict(equity=round(total,2),pnl_pct=round((total/START-1)*100,2),cagr=round(cagr*100,1),
+                span_days=round(span,2),cycles_per_day=round(cpd,3),
                 maxdd=round(mdd*100,1),sharpe=round(sh,2),wr=round(wr,1),pf=round(pf,2),
                 trades=len(pl),derived=derived,series=series)
 
@@ -416,22 +445,38 @@ def write_webdata(totals, states, btc_ok=True):
     def fund_block(key,ser,eqf,L):
         ev=[s[1] for s in ser]; mdd=0.0; pk=ev[0] if ev else START
         for v in ev: pk=max(pk,v); mdd=min(mdd,v/pk-1)
-        yrs=len(ev)/(3*365) if ev else 0
+        # Funding prints every 8h = 3 periods/day NOMINALLY, but periods with no ETH funding are
+        # deliberately SKIPPED (DD7), so len(ev) is not elapsed time here either - the same defect
+        # block() carried (audit FINDING 1; caught in the Codex cross-check of that fix). Measure.
+        span=_span_days(ser)
+        ppd=(len(ev)-1)/span if (span>0 and len(ev)>1) else FUNDING_PERIODS_PER_DAY_NOMINAL
+        yrs=span/365.0 if span>0 else (len(ev)/(FUNDING_PERIODS_PER_DAY_NOMINAL*365.0) if ev else 0)
         cagr=((eqf/START)**(1/yrs)-1) if (yrs>0 and eqf>0 and len(ev)>=60) else 0.0
         rr=np.array([ev[i]/ev[i-1]-1 for i in range(1,len(ev))]) if len(ev)>1 else np.array([])
-        sh=float(rr.mean()/rr.std()*np.sqrt(3*365)) if (len(rr)>=60 and rr.std()>0) else 0.0
+        sh=float(rr.mean()/rr.std()*np.sqrt(ppd*365)) if (len(rr)>=60 and rr.std()>0) else 0.0
         sh=min(sh,3.0) if sh>0 else max(sh,-3.0)  # cap: pure-carry vol is ~0 => raw Sharpe inflates (60+); real basis risk caps practical ~2-3
         return {"lev":f"{L}x","equity":round(eqf,2),"pnl_pct":round((eqf/START-1)*100,2),
                 "cagr":round(cagr*100,1),"maxdd":round(mdd*100,1),"sharpe":round(sh,2),
+                "span_days":round(span,2),"periods_per_day":round(ppd,3),
                 "wr":round(float((rr>0).mean()*100),1) if len(rr) else 0.0,"pf":0.0,"trades":0,
                 "derived":True,"series":ser}
     try:
         fb=fetch_funding("BTCUSDT",1000); fe=dict(fetch_funding("ETHUSDT",1000))
+        # 1000 8h periods = ~333 days of exchange history, but the live-forward test started when the
+        # equity series did. Shown whole, this tab silently BACKFILLED ~7 months of backtest and put
+        # its Sharpe in the same table as live-forward results (audit 2026-10-03 FINDING 2; that pass
+        # read the limit=500 DEFAULT and under-reported the overlap ~4x).
+        # The sim still RUNS over the full history - the side/size decisions read a TRAILING window, so
+        # cutting the input would cold-start them inside the displayed window and invent a flat opening
+        # stretch. Only the DISPLAYED series is cut, rebased to START at the live boundary, so the curve
+        # is comparable with every other tab while the signal stays warm. live0 comes from the equity
+        # series itself - never a pasted date.
+        live0=times_ms[0] if times_ms else None
         eth_skipped=0
         if len(fb)>=60:
             fl=[]
             for L in LEVELS:
-                eqf=START; ser=[]; hist=[]; pos=0; gate=CARRY_SIZE_COOL; skipped=0
+                eqf=START; ser=[]; hist=[]; pos=0; gate=CARRY_SIZE_COOL; skipped=0; eq0=None
                 for t,rbt in fb:
                     if t not in fe:                                 # DD7: no ETH funding this period -> skip + count (don't bridge with BTC's rate)
                         skipped+=1; continue
@@ -446,11 +491,24 @@ def write_webdata(totals, states, btc_ok=True):
                     side_cost=SWITCH_COST if want!=pos else 0.0     # entry/exit = full two-leg switch (existing)
                     gate_cost=SWITCH_COST*abs(newgate-gate) if (pos==1 and want==1) else 0.0  # resize an OPEN position (|0.7| notional); entry cost already covers a fresh open
                     pnl=want*newgate*(rbt+ret)/2.0 - side_cost - gate_cost
+                    in_win=(live0 is None or t>=live0)
+                    if in_win and eq0 is None and eqf>0: eq0=eqf   # equity ENTERING the displayed window
                     eqf*=(1+L*pnl)
                     pos=want; gate=newgate; hist.append((rbt+ret)/2.0)
-                    ser.append([datetime.fromtimestamp(t/1000,timezone.utc).isoformat()[:16],round(eqf,2)])
-                fl.append(fund_block(f"funding_{L}x",ser,eqf,L)); eth_skipped=skipped
-            tabs.append({"name":"Funding / Carry ★ (delta-neutral, real edge)","levels":fl,"eth_funding_skipped":eth_skipped})
+                    if in_win and eq0:
+                        ser.append([datetime.fromtimestamp(t/1000,timezone.utc).isoformat()[:16],
+                                    round(START*eqf/eq0,2)])
+                eq_disp=START*eqf/eq0 if (eq0 is not None and eq0>0) else eqf   # window shown, not the warmup
+                fl.append(fund_block(f"funding_{L}x",ser,eq_disp,L)); eth_skipped=skipped
+            cav=("Shown over the live-forward window only (rebased at the equity series' start) so its "
+                 "Sharpe is comparable with the other tabs; the sim itself warms up on the full funding "
+                 "history." if live0 else
+                 "WARNING: no equity history was available this run, so this tab shows the FULL funding "
+                 "history (~333d) and is NOT comparable with the live-forward tabs.")
+            tabs.append({"name":"Funding / Carry ★ (delta-neutral, real edge)","levels":fl,
+                         "eth_funding_skipped":eth_skipped,
+                         "caveat":cav+" Pure carry has near-zero vol, so its Sharpe runs into the +-3 cap"
+                                      " - do not read it as better than the directional legs."})
         else:
             tabs.append({"name":"Funding / Carry ★ (delta-neutral, real edge)",
                          "levels":[fund_block(f"funding_{L}x",[],START,L) for L in LEVELS],"eth_funding_skipped":0})
@@ -503,10 +561,19 @@ def cycle():
             cs=states[acct("trend",L)]["coins"][c]
             if cs["units"]>0:
                 cs["peak"]=max(cs["peak"],high); cs["trough"]=min(cs.get("trough") or cs["entry"],low); cs["bars"]=cs.get("bars",0)+1
-                if trend_exit or low<cs["stop"]:
-                    pnl=cs["units"]*price*(1-COST)-cs["units"]*cs["entry"]*(1+COST); cs["cash"]+=cs["units"]*price*(1-COST)
-                    log_trade([now(),acct("trend",L),c,"SELL",round(price,6),round(cs["units"],6),"exit",round(pnl,2)])
-                    log_detail(acct("trend",L),c,cs["entry"],price,cs.get("stop",0.0),cs["units"],cs.get("bars",0),pnl,cs.get("peak",0.0),cs.get("trough",0.0),"exit")
+                stop_hit=low<cs["stop"]
+                if trend_exit or stop_hit:
+                    # A stop is an INTRABAR event: it triggers on the bar LOW, so it cannot fill at the
+                    # bar CLOSE. Booking the close let a wick-and-recover bar exit ABOVE the stop - a price
+                    # the market never offered. The levered accounts stop out more often, harvested that
+                    # bias more often, and so showed Sharpe RISING with leverage (2.47/2.60/2.70), which
+                    # leverage cannot do (audit 2026-10-03 FINDING 3). min() also keeps the gap-down case
+                    # honest: a bar closing below the stop is the worse fill a stop-market would have got.
+                    # A Donchian signal exit still fills at the close - that signal IS a close.
+                    fill=min(price,cs["stop"]) if stop_hit else price
+                    pnl=cs["units"]*fill*(1-COST)-cs["units"]*cs["entry"]*(1+COST); cs["cash"]+=cs["units"]*fill*(1-COST)
+                    log_trade([now(),acct("trend",L),c,"SELL",round(fill,6),round(cs["units"],6),"stop" if stop_hit else "exit",round(pnl,2)])
+                    log_detail(acct("trend",L),c,cs["entry"],fill,cs.get("stop",0.0),cs["units"],cs.get("bars",0),pnl,cs.get("peak",0.0),cs.get("trough",0.0),"stop" if stop_hit else "exit")
                     if L==1: actions.append(f"trend {c} EXIT")
                     cs.update(units=0.0,entry=0.0,stop=0.0,peak=0.0,trough=0.0,bars=0)
             elif trend_buy:
@@ -520,10 +587,16 @@ def cycle():
             fs=states[acct("flush",L)]["coins"][c]
             if fs["units"]>0:
                 fs["peak"]=max(fs.get("peak") or fs["entry"],high); fs["trough"]=min(fs.get("trough") or fs["entry"],low)
-                if high/fs["entry"]-1>=FL_TARGET or fs["held"]>=FL_MAXBARS:
-                    pnl=fs["units"]*price*(1-COST)-fs["units"]*fs["entry"]*(1+COST); fs["cash"]+=fs["units"]*price*(1-COST)
-                    log_trade([now(),acct("flush",L),c,"SELL",round(price,6),round(fs["units"],6),"bounce/timeout",round(pnl,2)])
-                    log_detail(acct("flush",L),c,fs["entry"],price,0.0,fs["units"],fs.get("held",0),pnl,fs.get("peak",0.0),fs.get("trough",0.0),"bounce/timeout")
+                tgt_hit=high/fs["entry"]-1>=FL_TARGET
+                if tgt_hit or fs["held"]>=FL_MAXBARS:
+                    # Same bug, mirrored: the target is detected on the bar HIGH, so the fill is the TARGET
+                    # (a limit sell resting there fills when touched) - not a close that may sit above it
+                    # (free money) or below it (a phantom loss on a trade that really hit its target).
+                    # A timeout exit has no resting order, so it fills at the close.
+                    fill=fs["entry"]*(1+FL_TARGET) if tgt_hit else price
+                    pnl=fs["units"]*fill*(1-COST)-fs["units"]*fs["entry"]*(1+COST); fs["cash"]+=fs["units"]*fill*(1-COST)
+                    log_trade([now(),acct("flush",L),c,"SELL",round(fill,6),round(fs["units"],6),"bounce" if tgt_hit else "timeout",round(pnl,2)])
+                    log_detail(acct("flush",L),c,fs["entry"],fill,0.0,fs["units"],fs.get("held",0),pnl,fs.get("peak",0.0),fs.get("trough",0.0),"bounce" if tgt_hit else "timeout")
                     if L==1: actions.append(f"flush {c} EXIT")
                     fs.update(units=0.0,entry=0.0,held=0,size=0.0,peak=0.0,trough=0.0)
                 else: fs["held"]+=1
@@ -538,10 +611,12 @@ def cycle():
             xs=states[acct("crashreb",L)]["coins"][c]
             if xs["units"]>0:
                 xs["peak"]=max(xs.get("peak") or xs["entry"],high); xs["trough"]=min(xs.get("trough") or xs["entry"],low)
-                if high/xs["entry"]-1>=CR_TARGET or xs["held"]>=CR_MAXBARS:
-                    pnl=xs["units"]*price*(1-COST)-xs["units"]*xs["entry"]*(1+COST); xs["cash"]+=xs["units"]*price*(1-COST)
-                    log_trade([now(),acct("crashreb",L),c,"SELL",round(price,6),round(xs["units"],6),"bounce/timeout",round(pnl,2)])
-                    log_detail(acct("crashreb",L),c,xs["entry"],price,0.0,xs["units"],xs.get("held",0),pnl,xs.get("peak",0.0),xs.get("trough",0.0),"bounce/timeout")
+                tgt_hit=high/xs["entry"]-1>=CR_TARGET
+                if tgt_hit or xs["held"]>=CR_MAXBARS:
+                    fill=xs["entry"]*(1+CR_TARGET) if tgt_hit else price   # target fills AT the target, see flush above
+                    pnl=xs["units"]*fill*(1-COST)-xs["units"]*xs["entry"]*(1+COST); xs["cash"]+=xs["units"]*fill*(1-COST)
+                    log_trade([now(),acct("crashreb",L),c,"SELL",round(fill,6),round(xs["units"],6),"bounce" if tgt_hit else "timeout",round(pnl,2)])
+                    log_detail(acct("crashreb",L),c,xs["entry"],fill,0.0,xs["units"],xs.get("held",0),pnl,xs.get("peak",0.0),xs.get("trough",0.0),"bounce" if tgt_hit else "timeout")
                     if L==1: actions.append(f"crashreb {c} EXIT")
                     xs.update(units=0.0,entry=0.0,held=0,size=0.0,peak=0.0,trough=0.0)
                 else: xs["held"]+=1
