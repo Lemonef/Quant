@@ -20,10 +20,10 @@
     "ok": true
   },
   "crypto_bot": {
-    "updated": "2026-10-09T05:57",
+    "updated": "2026-10-09T15:13",
     "regime": "bull",
-    "open_positions": 2,
-    "total_trades": 183,
+    "open_positions": 0,
+    "total_trades": 189,
     "ok": true
   }
 }
