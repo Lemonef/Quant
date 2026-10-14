@@ -1,6 +1,6 @@
 """Preregistered COIN-M inverse quarterly carry; only new task artifacts are written.
 
-Run: python -B backtest/basis_coinm_test.py
+Run: python -B backtest/basis_coinm_test.py [BTC|ETH]
 Rules follow basis_carry_v2; accounting uses BTC inverse PnL, not linear PnL.
 Daily last-trade highs are a conservative MARK proxy, not actual mark observations.
 The dated report contains assumptions, source links, coverage and printed output.
@@ -24,15 +24,19 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from alpha_factory import config as cfg
 
+ASSET = sys.argv[1].upper() if len(sys.argv) > 1 else "BTC"
+if ASSET not in ("BTC", "ETH") or len(sys.argv) > 2:
+    raise SystemExit("usage: python -B backtest/basis_coinm_test.py [BTC|ETH]")
+IS_ETH = ASSET == "ETH"
 ASOF = dt.date(2026, 10, 15)
 DATA = HERE / "data" / "basis_cm"
-REPORT = HERE.parent / "backtest_results" / "BASIS_COINM_2026-10-15.md"
+REPORT = HERE.parent / "backtest_results" / ("BASIS_COINM_ETH_2026-10-15.md" if IS_ETH else "BASIS_COINM_2026-10-15.md")
 BASE = "https://data.binance.vision/data/futures/cm/monthly/klines"
 EXIT_DTES = (3, 5, 7, 10)
 LEVS = (1.0, 1.5, 2.0)
 MIN_DTE_ENTRY, PARTIAL_DTE = 20, 60
 MIN_NET_ANN, CASH_YIELD, TERM_BASIS_ALLOW = .05, .045, .005
-FACE = 100.0
+FACE = 10.0 if IS_ETH else 100.0
 CM_TAKER = .0005  # frozen regular-user COIN-M taker assumption, no discounts
 FUT_COST = 2 * (CM_TAKER + cfg.SLIPPAGE)
 SPOT_COST = cfg.TAKER_FEE + cfg.SLIPPAGE
@@ -41,6 +45,9 @@ ROUND_TRIP = 2 * (FUT_COST + SPOT_COST)
 # BTC position value (contracts * FACE / mark), cumulative/tax-bracket maintenance.
 TIERS = ((10., .004), (20., .005), (30., .01), (50., .025),
          (100., .05), (200., .10), (400., .125), (1000., .15), (math.inf, .25))
+if IS_ETH:
+    TIERS = ((100., .005), (500., .0065), (1000., .01), (2000., .025),
+             (4000., .05), (6000., .10), (8000., .125), (10000., .15), (math.inf, .25))
 SPEC = "https://www.binance.bh/en-AE/support/faq/detail/d33f37e2c7fe4da3b35ffc904e8fbab5"
 FEES = "https://www.binance.com/en-NZ/support/faq/detail/360033544231"
 SCHEDULE = "https://www.binance.com/en/fee/deliveryFee"
@@ -124,6 +131,11 @@ the index's final-hour average. It pays the same taker+slippage haircut as a
 normal close; no additional double settlement fee. Delivery settlement details
 are in the specifications link. USDT spot is treated as USD (no depeg/FX model).
 """
+if IS_ETH:
+    PREREG = (PREREG.replace("BTC", "ETH").replace("$100", "$10")
+              .replace("published 2021 ETH quarterly tier table", "published 2021 ETH quarterly tier table")
+              .replace("ETH-value caps 10/20/30/50/100/200/400/1000/infinity; marginal rates\n0.4/0.5/1/2.5/5/10/12.5/15/25%",
+                       "ETH-value caps 100/500/1000/2000/4000/6000/8000/10000/infinity; marginal rates\n0.5/0.65/1/2.5/5/10/12.5/15/25%"))
 
 
 def deliveries():
@@ -138,11 +150,13 @@ def deliveries():
 
 def spot_ohlc():
     frames = []
-    for name in ("BTCUSDT_1d.csv", "BTCUSDT_1d_since_2026-06.csv"):
+    names = (("ETHUSDT_1d.csv",) if IS_ETH else
+             ("BTCUSDT_1d.csv", "BTCUSDT_1d_since_2026-06.csv"))
+    for name in names:
         f = pd.read_csv(HERE / "data" / name)
         f["date"] = pd.to_datetime(f.open_time, unit="ms").dt.normalize()
         frames.append(f.set_index("date")[["open", "high", "low", "close"]].astype(float))
-    overlap = frames[0].index.intersection(frames[1].index)
+    overlap = frames[0].index.intersection(frames[1].index) if len(frames) > 1 else frames[0].index[:0]
     if len(overlap):
         disagree = (frames[0].loc[overlap] - frames[1].loc[overlap]).abs().max(axis=1) > 1e-8
         for date in overlap[disagree]:
@@ -205,7 +219,7 @@ def download_universe(ds):
     for d in ds:
         m = dt.date(d.year, d.month, 1)
         for _ in range(12):
-            jobs.append((f"BTCUSD_{d:%y%m%d}", f"{m:%Y-%m}"))
+            jobs.append((f"{ASSET}USD_{d:%y%m%d}", f"{m:%Y-%m}"))
             m = (m - dt.timedelta(days=1)).replace(day=1)
     with ThreadPoolExecutor(max_workers=8) as pool:
         fetched = []
@@ -214,12 +228,12 @@ def download_universe(ds):
             if i % 36 == 0 or i == len(jobs):
                 print(f"Vision monthly archives checked: {i}/{len(jobs)}", flush=True)
     manifest = [{k: v for k, v in r.items() if k != "rows"} | {"bars": len(r["rows"])} for r in fetched]
-    mp = DATA / "download_manifest_2026-10-15.json"
+    mp = DATA / (f"download_manifest_{ASSET}_2026-10-15.json" if IS_ETH else "download_manifest_2026-10-15.json")
     if not mp.exists():
         mp.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     futures = {}
     for d in ds:
-        symbol = f"BTCUSD_{d:%y%m%d}"
+        symbol = f"{ASSET}USD_{d:%y%m%d}"
         records = [r for r in fetched if r["symbol"] == symbol]
         rows = [bar for r in records for bar in r["rows"]]
         if not rows:
@@ -380,18 +394,20 @@ def aggregate(rows):
 
 def mechanics_checks():
     # Analytical invariants catch inverse sign/unit mistakes and leverage-path errors.
+    first_cap, first_rate = TIERS[0]
     for Fe in (20_000., 100_000.):
         Q, N = 1., Fe
         for mark in (Fe*.25, Fe, Fe*3, Fe*100):
             equity = Q + N*(1/mark-1/Fe)
             assert np.isclose(equity*mark, N)
-            assert np.isclose(maintenance(N/mark)[0]/equity, .004)
+            assert np.isclose(maintenance(N/mark)[0]/equity, first_rate)
         for Se, Fx, Sx in ((Fe*.98, Fe*.5, Fe*.5), (Fe*.98, Fe*2, Fe*2)):
             assert np.isclose((Q+N*(1/Fx-1/Fe))*Sx/(Q*Se)-1, Fe/Se-1)
         p = [(pd.Timestamp("2024-01-01"), Fe*1.1), (pd.Timestamp("2024-01-02"), Fe*2.1)]
         assert not margin_walk(p, Fe, Q, N)["liq"]
         assert margin_walk(p, Fe, Q, 2*N)["liq"]
-    assert np.isclose(maintenance(15)[0], 10*.004+5*.005)
+    test_value = 15. if not IS_ETH else 150.
+    assert np.isclose(maintenance(test_value)[0], first_cap*first_rate + (test_value-first_cap)*TIERS[1][1])
     # Synthetic execution checks: close signal never fills across a calendar gap,
     # and a high occurring after the scheduled exit open cannot liquidate a trade.
     delivery = dt.date(2024, 3, 29)
@@ -410,7 +426,7 @@ def mechanics_checks():
     print("Mechanics checks: inverse PnL, USD hedge, cumulative tiers, 1x/2x liquidation PASS", flush=True)
 
 
-def write_report(recs, covers, manifest, output):
+def write_report(recs, covers, manifest, output, spot):
     full = [r for r in recs if r["entered"] and not r["partial"]]
     part = [r for r in recs if r["entered"] and r["partial"]]
     family = {xd: aggregate([r for r in full if r["exit_dte"] == xd]) for xd in EXIT_DTES+(0,)}
@@ -421,9 +437,15 @@ def write_report(recs, covers, manifest, output):
                 and a5["ci_lo"] > 0 and all(v > 0 for v in a5["loyo"].values()))
     liq1 = any(r["walks"][1.]["reserve_liq"] for r in full+part)
     passes = kill and worst > CASH_YIELD and not liq1
+    asset_word = "ETH" if IS_ETH else "BTC"
+    coverage_description = (f"Spot file {asset_word}USDT_1d.csv, range {spot.index[0].date()} through {spot.index[-1].date()}."
+                            if IS_ETH else
+                            "Spot files combined, range 2023-01-01 through 2026-10-14. Later supplemental file takes precedence "
+                            "on overlaps. One revision found: 2026-06-06 close 60,593.99 in original versus 60,884.62 in "
+                            "supplemental (which has explicit close_time); original terminal row appears to be an unfinished bar.")
     verdict = "PASS — COIN-M rescues carry on observed 1x capital paths" if passes else "DEAD — COIN-M does NOT pass the preregistered carry rescue test"
     lines = [PREREG, "## Exit family (FULL, 1x)", "",
-             "| DTE | n | USD positive | USD mean ann ROC | BTC mean ann | USD CI95 | worst USD net | pre-2024 | post-2024 | LOYO min |",
+             f"| DTE | n | USD positive | USD mean ann ROC | {asset_word} mean ann | USD CI95 | worst USD net | pre-2024 | post-2024 | LOYO min |",
              "|---|---|---|---|---|---|---|---|---|---|"]
     for xd, a in family.items():
         if not a["n"]:
@@ -433,7 +455,7 @@ def write_report(recs, covers, manifest, output):
     lines += ["", f"**Family-worst USD ROC: {worst:+.2%}/yr.** DTE5 LOYO: " +
               (", ".join(f"drop {y}: {v:+.2%}" for y,v in a5["loyo"].items()) if a5["n"] else "unavailable"),
               "", "## Every contract (DTE5; PARTIAL never enters the verdict)", "",
-              "| contract | bucket/status | entry → exit | DTE entry | signal basis | actual entry basis | gross USD | net USD | USD ann ROC | BTC net / ann | inverse PnL BTC / USD | capital USD |",
+              f"| contract | bucket/status | entry → exit | DTE entry | signal basis | actual entry basis | gross USD | net USD | USD ann ROC | {asset_word} net / ann | inverse PnL {asset_word} / USD | capital USD |",
               "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     r5 = [r for r in recs if r["exit_dte"] == 5]
     for r in r5:
@@ -444,9 +466,9 @@ def write_report(recs, covers, manifest, output):
             lines.append(f"| {r['code']} | {bucket} | {r['entry']} → {r['exit']} | {r['dte_entry']} | {r['basis_signal']:+.2%} | {r['basis_entry']:+.2%} | {r['gross']:+.3%} | {r['net']:+.3%} | {r['net_ann']:+.2%} | {r['btc_net']:+.2%} / {r['btc_ann']:+.2%} | {r['pnl_btc']:+.6f} / {r['pnl_usd']:+.2f} | {r['capital']:.2f} |")
     losers = [r["code"] for r in r5 if r["entered"] and r["net"] <= 0]
     lines += ["", "USD losers (DTE5, including PARTIAL): " + (", ".join(losers) or "none") + ".",
-              "BTC losses are listed explicitly above; BTC-denominated loss does not imply USD carry loss.",
+              f"{asset_word} losses are listed explicitly above; {asset_word}-denominated loss does not imply USD carry loss.",
               "", "## PARTIAL exit family (descriptive)", "",
-              "| DTE | entered | positive USD | USD mean ann | BTC mean ann |", "|---|---|---|---|---|"]
+              f"| DTE | entered | positive USD | USD mean ann | {asset_word} mean ann |", "|---|---|---|---|---|"]
     for xd in EXIT_DTES+(0,):
         a = aggregate([r for r in part if r["exit_dte"] == xd])
         lines.append(f"| {xd if xd else 'hold proxy'} | {a['n']} | " +
@@ -489,9 +511,7 @@ def write_report(recs, covers, manifest, output):
         lines += [f"COIN-M DTE5 on {a['n']}/8 archived USD-M delivery codes: {a['mean']:+.2%}/yr "
                   "(delivery-matched only; entry dates differ)."]
     lines += ["", "## Data coverage and gaps", "",
-              "Spot files combined, range 2023-01-01 through 2026-10-14. Later supplemental file takes precedence "
-              "on overlaps. One revision found: 2026-06-06 close 60,593.99 in original versus 60,884.62 in "
-              "supplemental (which has explicit close_time); original terminal row appears to be an unfinished bar. "
+              coverage_description + " "
               "No spot data before 2023; no additional downloads of spot or substitution of perpetual futures.", "",
               "| contract | futures first / last | first common DTE | bucket | reason |", "|---|---|---|---|---|"]
     gap_details = []
@@ -553,9 +573,9 @@ def main():
     output.append("PARTIAL contracts: " + (", ".join(partial_codes) or "none"))
     output.append("USD losers DTE5: " + (", ".join(r["code"] for r in recs if r["entered"] and r["exit_dte"]==5 and r["net"] <= 0) or "none"))
     # Report is generated, then actual summary output is recorded verbatim in its final block.
-    _, worst, verdict, _, _ = write_report(recs, covers, manifest, [])
+    _, worst, verdict, _, _ = write_report(recs, covers, manifest, [], spot)
     output += [f"VERDICT: {verdict}", f"1x family-worst USD ROC {worst:+.4%}/yr vs USD-M margin engine +4.1%/yr", f"wrote -> {REPORT}"]
-    write_report(recs, covers, manifest, output)
+    write_report(recs, covers, manifest, output, spot)
     print("\n".join(output), flush=True)
     return 0
 
