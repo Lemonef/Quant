@@ -1,6 +1,6 @@
 # BTCUSDT basis carry — MARGIN ENGINE (capital-adjusted) — 2026-10-15
 
-Same entry/exit as basis_carry_v2 (DTE-5 exit, FULL contracts). Each contract walked day by day under a collateral policy fixed EX ANTE. Liquidation trigger = futures daily HIGH vs entry >= c - maint (0.5%); on liquidation the collateral is lost, a 1.0% fee charged and spot unwound at that close. Return is on TOTAL capital tied up = spot notional + collateral. Hurdle = cash yield 4.5%/yr. Daily high is a proxy for mark price, so liquidation counts are a LOWER bound.
+Same entry/exit as basis_carry_v2 (DTE-5 exit, FULL contracts). Each contract walked day by day under a collateral policy fixed EX ANTE. Liquidation trigger = futures daily HIGH vs entry >= c - maint (0.5%); on liquidation the collateral is lost, a 1.0% fee charged and spot unwound at that close. Return is on TOTAL capital tied up = spot notional + collateral. Hurdle = cash yield 4.5%/yr. The trigger uses last-trade daily HIGHS; real engines use the smoother MARK price, so liquidation counts here are CONSERVATIVE (an upper bound).
 
 Contracts: 8 · unlevered headline from v2 (return on spot notional only): **+10.3%/yr**
 

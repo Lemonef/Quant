@@ -25,9 +25,11 @@ THE HURDLE that matters is not zero, it is CASH: capital that sits in a carry tr
 in a USD yield instead. CASH_YIELD is declared, not fitted. A carry that cannot beat it on the
 capital it actually consumes is a worse version of a savings account with tail risk attached.
 
-Declared, not searched: every constant below. Daily HIGH of the last-traded futures price is a
-PROXY for the mark price (intraday marks can be worse, liquidation engines use mark) - so
-liquidation counts here are a LOWER bound.
+Declared, not searched: every constant below. Liquidation is triggered on the daily HIGH of the
+LAST-TRADED futures price. Real engines liquidate on the MARK price, which is index-based and smoother
+than last-trade wicks - so this trigger fires MORE often than a real engine would and the liquidation
+counts here are CONSERVATIVE (an upper bound). Corrected 2026-10-15 after the cross-model review: the
+first draft of this docstring had the direction backwards.
 
 Usage: python backtest/basis_margin_engine.py [BTCUSDT|ETHUSDT]
 """
@@ -120,8 +122,8 @@ def main():
              "under a collateral policy fixed EX ANTE. Liquidation trigger = futures daily HIGH vs entry >= "
              f"c - maint ({MAINT:.1%}); on liquidation the collateral is lost, a {LIQ_FEE:.1%} fee charged and spot "
              "unwound at that close. Return is on TOTAL capital tied up = spot notional + collateral. "
-             f"Hurdle = cash yield {CASH_YIELD:.1%}/yr. Daily high is a proxy for mark price, so liquidation "
-             "counts are a LOWER bound.", "",
+             f"Hurdle = cash yield {CASH_YIELD:.1%}/yr. The trigger uses last-trade daily HIGHS; real engines use the "
+             "smoother MARK price, so liquidation counts here are CONSERVATIVE (an upper bound).", "",
              f"Contracts: {n} · unlevered headline from v2 (return on spot notional only): "
              f"**{df['net'].mul(365).div(df['days']).mean():+.1%}/yr**", "",
              "| policy | capital per $1 notional | liquidated | mean return ON CAPITAL /yr | worst contract | beats cash? |",
