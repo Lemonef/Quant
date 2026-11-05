@@ -10,177 +10,196 @@
       "size": 0.0
     },
     "ETHUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 0.629959549965739,
+      "entry": 2262.05,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 2287.11,
+      "held": 1,
+      "size": 1.0,
+      "trough": 2240.79
     },
     "SOLUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 15.81225033288948,
+      "entry": 90.12,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 91.59,
+      "held": 1,
+      "size": 1.0,
+      "trough": 88.76
     },
     "BNBUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 2.055150134125588,
+      "entry": 693.38,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 697.17,
+      "held": 1,
+      "size": 1.0,
+      "trough": 687.6
     },
     "XRPUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 1145.3142581578525,
+      "entry": 1.2442,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 1.2599,
+      "held": 1,
+      "size": 1.0,
+      "trough": 1.2288
     },
     "ADAUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 7686.084142394821,
+      "entry": 0.1854,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.1862,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.1803
     },
     "AVAXUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 169.58229203855765,
+      "entry": 8.403,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 8.447,
+      "held": 1,
+      "size": 1.0,
+      "trough": 8.156
     },
     "LINKUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 131.2638172439204,
+      "entry": 10.856,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 10.934,
+      "held": 1,
+      "size": 1.0,
+      "trough": 10.625
     },
     "LTCUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 27.070668693009118,
+      "entry": 52.64,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 52.72,
+      "held": 1,
+      "size": 1.0,
+      "trough": 51.34
     },
     "DOGEUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 19630.803140928503,
+      "entry": 0.07259,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.07288,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.07111
     },
     "MATICUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 3728.414442700157,
+      "entry": 0.3822,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.3847,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.3806
     },
     "DOTUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 1525.695931477516,
+      "entry": 0.934,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.937,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.892
     },
     "ATOMUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 986.8421052631579,
+      "entry": 1.444,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 1.447,
+      "held": 1,
+      "size": 1.0,
+      "trough": 1.394
     },
     "NEARUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 383.9935327405012,
+      "entry": 3.711,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 3.81,
+      "held": 1,
+      "size": 1.0,
+      "trough": 3.639
     },
     "FILUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 1757.740224497348,
+      "entry": 0.8107,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.8164,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.7822
     },
     "UNIUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 208.029197080292,
+      "entry": 6.85,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 6.965,
+      "held": 1,
+      "size": 1.0,
+      "trough": 6.717
     },
     "ETCUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 202.41477272727272,
+      "entry": 7.04,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 7.07,
+      "held": 1,
+      "size": 1.0,
+      "trough": 6.84
     },
     "XLMUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 9193.548387096775,
+      "entry": 0.155,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.1571,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.1515
     },
     "ALGOUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 14721.07438016529,
+      "entry": 0.0968,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 0.0968,
+      "held": 1,
+      "size": 1.0,
+      "trough": 0.0928
     },
     "ICPUSDT": {
-      "cash": 500.0,
-      "units": 0.0,
-      "entry": 0.0,
+      "cash": -927.1375,
+      "units": 571.3712910986367,
+      "entry": 2.494,
       "stop": 0.0,
-      "peak": 0.0,
-      "held": 0,
-      "size": 0.0
+      "peak": 2.506,
+      "held": 1,
+      "size": 1.0,
+      "trough": 2.425
     }
   },
-  "last_run": "2026-11-05T12:09:20.578371+00:00",
-  "equity": 10000.0
+  "last_run": "2026-11-05T21:55:12.634453+00:00",
+  "equity": 9959.39
 }
